@@ -2,38 +2,44 @@
 
 # Table of Contents
 &nbsp;[Introduction](https://github.com/richsposato/Memwa#introduction) <br/> 
-&nbsp;&nbsp;[Terminology](https://github.com/richsposato/Memwa#build-instructions) <br/> 
-&nbsp;[Benefits of Memwa](https://github.com/richsposato/Memwa#Benefits-of-Memwa) <br/>
-&nbsp;&nbsp;[Time](https://github.com/richsposato/Memwa#Time) <br/>
-&nbsp;&nbsp;[Memory Use](https://github.com/richsposato/Memwa#Memory-Use) <br/>
-&nbsp;&nbsp;[Alignment-Aware](https://github.com/richsposato/Memwa#Alignment-Aware) <br/>
-&nbsp;&nbsp;[C++17 Compatible](https://github.com/richsposato/Memwa#C++17-Compatible) <br/>
-&nbsp;[Using Memwa](https://github.com/richsposato/Memwa#Using-Memwa) <br/>
-&nbsp;&nbsp;[Build Instructions](https://github.com/richsposato/Memwa#Build-Instructions) <br/>
-&nbsp;&nbsp;[Alignment](https://github.com/richsposato/Memwa#Alignment) <br/>
-&nbsp;&nbsp;[Exceptions](https://github.com/richsposato/Memwa#Exceptions) <br/>
-&nbsp;&nbsp;[Recommendations](https://github.com/richsposato/Memwa#Recommendations) <br/>
-&nbsp;&nbsp;[With STL Containers](https://github.com/richsposato/Memwa# ) <br/>
-&nbsp;&nbsp;[Examples](https://github.com/richsposato/Memwa#Examples) <br/>
-&nbsp;[Allocators](https://github.com/richsposato/Memwa#Allocators) <br/>
-&nbsp;&nbsp;[LinearAllocator](https://github.com/richsposato/Memwa#LinearAllocator) <br/>
-&nbsp;&nbsp;[StackAllocator](https://github.com/richsposato/Memwa#StackAllocator) <br/>
-&nbsp;&nbsp;[PoolAllocator](https://github.com/richsposato/Memwa#PoolAllocator) <br/>
-&nbsp;&nbsp;[TinyObjectAllocator](https://github.com/richsposato/Memwa#TinyObjectAllocator) <br/>
-&nbsp;[Testing Memwa](https://github.com/richsposato/Memwa#Testing-Memwa) <br/>
-&nbsp;&nbsp;[Functionality](https://github.com/richsposato/Memwa#Functionality) <br/>
-&nbsp;&nbsp;[Timing Tests](https://github.com/richsposato/Memwa#Timing-Tests) <br/>
-&nbsp;&nbsp;[Memory Tests](https://github.com/richsposato/Memwa#Memory-Tests) <br/>
-&nbsp;&nbsp;[Multi-threaded](https://github.com/richsposato/Memwa#Multi-threaded) <br/>
-&nbsp;[Design of Memwa](https://github.com/richsposato/Memwa#Design-of-Memwa) <br/>
-&nbsp;&nbsp;[Levels of Responsibility](https://github.com/richsposato/Memwa#Levels-of-Responsibility) <br/>
-&nbsp;&nbsp;[Design Considerations](https://github.com/richsposato/Memwa#Design-Considerations) <br/>
-&nbsp;&nbsp;&nbsp;[Portability](https://github.com/richsposato/Memwa#Portability) <br/>
-&nbsp;&nbsp;&nbsp;[Time Performance](https://github.com/richsposato/Memwa#Time-Performance) <br/>
-&nbsp;&nbsp;&nbsp;[Space Performance](https://github.com/richsposato/Memwa#Space-Performance) <br/>
-&nbsp;&nbsp;&nbsp;[STL Container Compatiblility](https://github.com/richsposato/Memwa#STL-Container-Compatiblility) <br/>
-&nbsp;&nbsp;&nbsp;[Embedded Software](https://github.com/richsposato/Memwa#Embedded-Software) <br/>
-&nbsp;[Writing Memwa Based Allocators](https://github.com/richsposato/Memwa#Writing-Memwa-Based-Allocators) <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;[Terminology](https://github.com/richsposato/Memwa#terminology) <br/> 
+&nbsp;[Benefits of Memwa](https://github.com/richsposato/Memwa#benefits-of-memwa) <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;[Time](https://github.com/richsposato/Memwa#time) <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;[Memory Use](https://github.com/richsposato/Memwa#memory-Use) <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;[Alignment-Aware](https://github.com/richsposato/Memwa#alignment-aware) <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;[C++17 Compatible](https://github.com/richsposato/Memwa#c17-compatible) <br/>
+&nbsp;[Using Memwa](https://github.com/richsposato/Memwa#using-memwa) <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;[Build Instructions](https://github.com/richsposato/Memwa#build-instructions) <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;[Alignment](https://github.com/richsposato/Memwa#alignment) <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;[Exceptions](https://github.com/richsposato/Memwa#exceptions) <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;[Recommendations](https://github.com/richsposato/Memwa#recommendations) <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;[With STL Containers](https://github.com/richsposato/Memwa#with-stl-containers) <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;[Examples](https://github.com/richsposato/Memwa#examples) <br/>
+&nbsp;[Allocators](https://github.com/richsposato/Memwa#allocators) <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;[LinearAllocator](https://github.com/richsposato/Memwa#linearallocator) <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;[StackAllocator](https://github.com/richsposato/Memwa#stackallocator) <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;[PoolAllocator](https://github.com/richsposato/Memwa#poolallocator) <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;[TinyObjectAllocator](https://github.com/richsposato/Memwa#tinyobjectallocator) <br/>
+&nbsp;[Testing Memwa](https://github.com/richsposato/Memwa#testing-memwa) <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;[Functionality](https://github.com/richsposato/Memwa#functionality) <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;[Timing Tests](https://github.com/richsposato/Memwa#timing-tests) <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;[Memory Tests](https://github.com/richsposato/Memwa#memory-tests) <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;[Multi-threaded](https://github.com/richsposato/Memwa#multi-threaded) <br/>
+&nbsp;[Design of Memwa](https://github.com/richsposato/Memwa#design-of-memwa) <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;[Levels of Responsibility](https://github.com/richsposato/Memwa#levels-of-responsibility) <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[Block](https://github.com/richsposato/Memwa#block) <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[BlockInfo](https://github.com/richsposato/Memwa#blockinfo) <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[Single-Threaded Allocator](https://github.com/richsposato/Memwa#single-threaded-allocator) <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[Multi-Threaded Allocator](https://github.com/richsposato/Memwa#multi-threaded-allocator) <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[AllocatorManager](https://github.com/richsposato/Memwa#allocatormanager) <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[Supporting Classes](https://github.com/richsposato/Memwa#supporting-classes) <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;[Design Considerations](https://github.com/richsposato/Memwa#design-considerations) <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[Portability](https://github.com/richsposato/Memwa#portability) <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[Time Performance](https://github.com/richsposato/Memwa#time-performance) <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[Space Performance](https://github.com/richsposato/Memwa#space-performance) <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[STL Container Compatiblility](https://github.com/richsposato/Memwa#stl-container-compatiblility) <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[Embedded Software](https://github.com/richsposato/Memwa#embedded-software) <br/>
+&nbsp;[Writing Memwa Based Allocators](https://github.com/richsposato/Memwa#writing-memwa-based-allocators) <br/>
 
 # Introduction
 
@@ -53,7 +59,7 @@ These terms are used within the documentation and code for Memwa.
 
 ## **Time**
 
-## **Memory Consumption**
+## **Memory Use**
 
 ## **Alignment-Aware**
 
@@ -136,6 +142,16 @@ This allocator provides a time and space efficient way to allocate many small ch
 
 ## **Functionality**
 
+The purpose of functionality tests is to demonstrate that each allocator provides an expected output for particular input values.
+
+### Negative Tests
+
+These tests provide invalid input parameters (e.g. - wrong size or wrong alignment) to see if the allocator will throw an exception.
+
+### Positive Tests
+
+These tests show the allocators return correct values for valid input.
+
 ## **Timing Tests**
 
 ## **Memory Tests**
@@ -146,13 +162,25 @@ This allocator provides a time and space efficient way to allocate many small ch
 
 ## **Levels of Responsibility**
 
+### Block
+
+### BlockInfo
+
+### Single-Threaded Allocator
+
+### Multi-Threaded Allocator
+
+### AllocatorManager
+
+### Supporting Classes
+
 ## **Design Considerations**
 
 ### **Portability**
 
 ### **Time Performance**
 
-The lowest levels of each Memwa allocator require only O(1) operations to allocate and release a chunk.
+The lowest levels of each Memwa allocator require only O(1) operations to allocate and release a chunk. A Block should only need to adjust one or two pointers and/or indexes for each allocation and release.
 
 ### **Space Performance**
 
