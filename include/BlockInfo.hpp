@@ -102,7 +102,7 @@ struct BlockInfo
 		}
 	}
 
-	void * Allocate( std::size_t size )
+	void * Allocate( std::size_t size, const void * hint )
 	{
 		if ( blockSize_ < size )
 		{
@@ -110,7 +110,23 @@ struct BlockInfo
 		}
 
 		BlocksIter end( blocks_.end() );
-		// Check most recently used block first.
+		// Check hint first.
+		if ( nullptr != hint )
+		{
+			BlocksIter it = GetBlock( hint );
+			if ( it != end )
+			{
+				BlockType & block = *it;
+				void * p = block.Allocate( size, blockSize_, alignment_ );
+				if ( nullptr != p )
+				{
+					return p;
+					recent_ = it;
+				}
+			}
+		}
+
+		// Check most recently used block next.
 		if ( recent_ != end )
 		{
 			BlockType & block = *recent_;
@@ -214,7 +230,7 @@ struct BlockInfo
 		return actualSize;
 	}
 
-	bool HasAddress( void * place ) const
+	bool HasAddress( const void * place ) const
 	{
 		const BlocksCIter it( GetBlock( place ) );
 		const BlocksCIter end( blocks_.end() );
@@ -222,7 +238,7 @@ struct BlockInfo
 		return hasIt;
 	}
 
-	BlocksIter GetBlock( void * place )
+	BlocksIter GetBlock( const void * place )
 	{
 		const BlocksIter end( blocks_.end() );
 		BlocksIter here( blocks_.begin() );
@@ -260,7 +276,7 @@ struct BlockInfo
 		return end;
 	}
 
-	BlocksCIter GetBlock( void * place ) const
+	BlocksCIter GetBlock( const void * place ) const
 	{
 		BlockInfo * pThis = const_cast< BlockInfo * >( this );
 		BlocksIter it( pThis->GetBlock( place ) );
@@ -384,11 +400,27 @@ struct AnyPoolBlockInfo : BlockInfo< BlockType >
 
 	~AnyPoolBlockInfo() {}
 
-	void * Allocate()
+	void * Allocate( const void * hint )
 	{
 
 		BlocksIter end( BaseClass::blocks_.end() );
-		// Check most recently used block first.
+		// Check hint first.
+		if ( nullptr != hint )
+		{
+			BlocksIter it = BaseClass::GetBlock( hint );
+			if ( it != end )
+			{
+				BlockType & block = *it;
+				void * p = block.Allocate();
+				if ( nullptr != p )
+				{
+					return p;
+					BaseClass::recent_ = it;
+				}
+			}
+		}
+
+		// Check most recently used block next.
 		if ( BaseClass::recent_ != end )
 		{
 			BlockType & block = *( BaseClass::recent_ );
@@ -530,11 +562,27 @@ struct TinyBlockPoolInfo : AnyPoolBlockInfo< BlockType >
 
 	~TinyBlockPoolInfo() {}
 
-	void * Allocate()
+	void * Allocate( const void * hint )
 	{
 
 		BlocksIter end( BaseClass::blocks_.end() );
-		// Check most recently used block first.
+		// Check hint first.
+		if ( nullptr != hint )
+		{
+			BlocksIter it = BaseClass::GetBlock( hint );
+			if ( it != end )
+			{
+				BlockType & block = *it;
+				void * p = block.Allocate( BaseClass::blockSize_ );
+				if ( nullptr != p )
+				{
+					return p;
+					BaseClass::recent_ = it;
+				}
+			}
+		}
+
+		// Check most recently used block next.
 		if ( BaseClass::recent_ != end )
 		{
 			BlockType & block = *( BaseClass::recent_ );

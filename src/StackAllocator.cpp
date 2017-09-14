@@ -65,10 +65,10 @@ public:
 	std::size_t Resize( void * chunk, std::size_t oldSize, std::size_t newSize, std::size_t blockSize, std::size_t alignment );
 
 	/// Returns true if the chunk is within this memory block.
-	bool HasAddress( void * chunk, std::size_t blockSize ) const;
+	bool HasAddress( const void * chunk, std::size_t blockSize ) const;
 
 	/// Returns true if the top of this memory block is below the chunk.
-	bool IsBelowAddress( void * chunk, std::size_t blockSize ) const;
+	bool IsBelowAddress( const void * chunk, std::size_t blockSize ) const;
 
 	/// Returns true if this block has enough bytes left to allocate a chunk.
 	bool HasBytesAvailable( std::size_t bytes, std::size_t blockSize, std::size_t alignment ) const;
@@ -250,7 +250,7 @@ std::size_t StackBlock::Resize( void * place, std::size_t oldSize, std::size_t n
 
 // ----------------------------------------------------------------------------
 
-bool StackBlock::IsBelowAddress( void * chunk, std::size_t blockSize ) const
+bool StackBlock::IsBelowAddress( const void * chunk, std::size_t blockSize ) const
 {
 	const bool below = ( block_ + blockSize <= chunk );
 	return below;
@@ -258,7 +258,7 @@ bool StackBlock::IsBelowAddress( void * chunk, std::size_t blockSize ) const
 
 // ----------------------------------------------------------------------------
 
-bool StackBlock::HasAddress( void * chunk, std::size_t blockSize ) const
+bool StackBlock::HasAddress( const void * chunk, std::size_t blockSize ) const
 {
 	if ( chunk < block_ )
 	{
@@ -375,7 +375,7 @@ void StackAllocator::Destroy()
 
 // ----------------------------------------------------------------------------
 
-void * StackAllocator::Allocate( std::size_t size, std::size_t alignment )
+void * StackAllocator::Allocate( std::size_t size, std::size_t alignment, const void * hint )
 {
 	if ( alignment > info_.alignment_ )
 	{
@@ -387,34 +387,34 @@ void * StackAllocator::Allocate( std::size_t size, std::size_t alignment )
 		throw std::invalid_argument( "Requested allocation size must be smaller than the memory block size." );
 	}
 
-	void * p = info_.Allocate( size );
+	void * p = info_.Allocate( size, hint );
 	return p;
 }
 
 // ----------------------------------------------------------------------------
 
 #if __cplusplus > 201402L
-void * StackAllocator::Allocate( std::size_t size, bool doThrow, std::align_val_t alignment )
+void * StackAllocator::Allocate( std::size_t size, bool doThrow, std::align_val_t alignment, const void * hint )
 #else
-void * StackAllocator::Allocate( std::size_t size, bool doThrow, std::size_t alignment )
+void * StackAllocator::Allocate( std::size_t size, bool doThrow, std::size_t alignment, const void * hint )
 #endif
 {
 
-	void * p = Allocate( size, alignment );
+	void * p = Allocate( size, alignment, hint );
 	if ( nullptr != p )
 	{
 		return p;
 	}
 	if ( TrimEmptyBlocks() )
 	{
-		p = Allocate( size, alignment );
+		p = Allocate( size, alignment, hint );
 		if ( nullptr != p )
 		{
 			return p;
 		}
 	}
 	memwa::impl::ManagerImpl::GetManager()->TrimEmptyBlocks( this );
-	p = Allocate( size, alignment );
+	p = Allocate( size, alignment, hint );
 	if ( ( nullptr == p ) && doThrow )
 	{
 		throw std::bad_alloc();
@@ -425,9 +425,9 @@ void * StackAllocator::Allocate( std::size_t size, bool doThrow, std::size_t ali
 
 // ----------------------------------------------------------------------------
 
-void * StackAllocator::Allocate( std::size_t size, bool doThrow )
+void * StackAllocator::Allocate( std::size_t size, bool doThrow, const void * hint )
 {
-	void * p = StackAllocator::Allocate( size, doThrow );
+	void * p = StackAllocator::Allocate( size, doThrow, hint );
 	return p;
 }
 
@@ -485,6 +485,16 @@ std::size_t StackAllocator::Resize( void * place, std::size_t oldSize, std::size
 {
 	const std::size_t actualSize = Resize( place, oldSize, newSize );
 	return actualSize;
+}
+
+// ----------------------------------------------------------------------------
+
+unsigned long long StackAllocator::GetMaxSize( std::size_t objectSize ) const
+{
+	const unsigned long long bytesAvailable = memwa::impl::GetTotalAvailableMemory();
+	const unsigned long long maxPossibleBlocks = bytesAvailable / info_.blockSize_;
+	const unsigned long long maxPossibleObjects = maxPossibleBlocks / objectSize;
+	return maxPossibleObjects;
 }
 
 // ----------------------------------------------------------------------------
@@ -564,7 +574,7 @@ ThreadSafeStackAllocator::~ThreadSafeStackAllocator()
 
 // ----------------------------------------------------------------------------
 
-void * ThreadSafeStackAllocator::Allocate( std::size_t size, bool doThrow )
+void * ThreadSafeStackAllocator::Allocate( std::size_t size, bool doThrow, const void * hint )
 {
 	LockGuard guard( mutex_ );
 	return StackAllocator::Allocate( size, doThrow );
@@ -573,9 +583,9 @@ void * ThreadSafeStackAllocator::Allocate( std::size_t size, bool doThrow )
 // ----------------------------------------------------------------------------
 
 #if __cplusplus > 201402L
-void * ThreadSafeStackAllocator::Allocate( std::size_t size, bool doThrow, std::align_val_t alignment )
+void * ThreadSafeStackAllocator::Allocate( std::size_t size, bool doThrow, std::align_val_t alignment, const void * hint )
 #else
-void * ThreadSafeStackAllocator::Allocate( std::size_t size, bool doThrow, std::size_t alignment )
+void * ThreadSafeStackAllocator::Allocate( std::size_t size, bool doThrow, std::size_t alignment, const void * hint )
 #endif
 {
 	LockGuard guard( mutex_ );

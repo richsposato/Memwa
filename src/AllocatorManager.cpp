@@ -19,6 +19,38 @@ namespace impl
 
 // ----------------------------------------------------------------------------
 
+#if defined(unix) || defined(__unix__) || defined(__unix)
+
+#include <unistd.h>
+
+unsigned long long GetTotalAvailableMemory()
+{
+    const long pageCount = sysconf( _SC_PHYS_PAGES );
+    const long pageSize = sysconf( _SC_PAGE_SIZE );
+    const unsigned long long totalBytes = pageCount * pageSize;
+    return totalBytes;
+}
+
+#endif
+
+// ----------------------------------------------------------------------------
+
+#if defined(_WIN64) || defined(_WIN64)
+
+#include <windows.h>
+
+unsigned long long GetTotalAvailableMemory()
+{
+    MEMORYSTATUSEX status;
+    status.dwLength = sizeof( status );
+    GlobalMemoryStatusEx( &status );
+    return status.ullAvailVirtual;
+}
+
+#endif
+
+// ----------------------------------------------------------------------------
+
 std::size_t GetIndex( std::size_t alignment )
 {
 	switch ( alignment )

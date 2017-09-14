@@ -32,9 +32,9 @@ public:
 
 	void Destroy();
 
-	bool HasAddress( void * place, std::size_t blockSize ) const;
+	bool HasAddress( const void * place, std::size_t blockSize ) const;
 
-	bool IsBelowAddress( void * place, std::size_t blockSize ) const;
+	bool IsBelowAddress( const void * place, std::size_t blockSize ) const;
 
 	bool HasBytesAvailable( std::size_t bytes, std::size_t blockSize, std::size_t alignment ) const;
 

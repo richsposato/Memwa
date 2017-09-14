@@ -29,9 +29,9 @@ public:
 
 	bool Release( void * place );
 
-	bool HasAddress( void * place, std::size_t poolSize ) const;
+	bool HasAddress( const void * place, std::size_t poolSize ) const;
 
-	bool IsBelowAddress( void * place, std::size_t poolSize ) const;
+	bool IsBelowAddress( const void * place, std::size_t poolSize ) const;
 
 	bool operator < ( const PoolBlock & that ) const
 	{
@@ -139,7 +139,7 @@ bool PoolBlock::Release( void * place )
 
 // ----------------------------------------------------------------------------
 
-bool PoolBlock::HasAddress( void * place, std::size_t poolSize ) const
+bool PoolBlock::HasAddress( const void * place, std::size_t poolSize ) const
 {
 	if ( place < block_ )
 	{
@@ -154,7 +154,7 @@ bool PoolBlock::HasAddress( void * place, std::size_t poolSize ) const
 
 // ----------------------------------------------------------------------------
 
-bool PoolBlock::IsBelowAddress( void * place, std::size_t poolSize ) const
+bool PoolBlock::IsBelowAddress( const void * place, std::size_t poolSize ) const
 {
 	const bool isBelow = ( block_ + poolSize <= place );
 	return isBelow;
@@ -238,7 +238,7 @@ void PoolAllocator::Destroy()
 
 // ----------------------------------------------------------------------------
 
-void * PoolAllocator::Allocate( std::size_t size, bool throwException )
+void * PoolAllocator::Allocate( std::size_t size, bool throwException, const void * hint )
 {
 	const std::size_t alignedSize = memwa::CalculateBytesNeeded( size, info_.alignment_ );
 	if ( info_.objectSize_ != alignedSize )
@@ -246,13 +246,13 @@ void * PoolAllocator::Allocate( std::size_t size, bool throwException )
 		throw std::invalid_argument( "Error! Tried to allocate wrong size in PoolAllocator." );
 	}
 
-	void * p = info_.Allocate();
+	void * p = info_.Allocate( hint );
 	if ( nullptr != p )
 	{
 		return p;
 	}
 	memwa::impl::ManagerImpl::GetManager()->TrimEmptyBlocks( this );
-	p = info_.Allocate();
+	p = info_.Allocate( hint );
 	if ( ( nullptr == p ) && throwException )
 	{
 		throw std::bad_alloc();
@@ -264,16 +264,16 @@ void * PoolAllocator::Allocate( std::size_t size, bool throwException )
 // ----------------------------------------------------------------------------
 
 #if __cplusplus > 201402L
-void * PoolAllocator::Allocate( std::size_t size, bool doThrow, std::align_val_t alignment )
+void * PoolAllocator::Allocate( std::size_t size, bool doThrow, std::align_val_t alignment, const void * hint )
 #else
-void * PoolAllocator::Allocate( std::size_t size, bool doThrow, std::size_t alignment )
+void * PoolAllocator::Allocate( std::size_t size, bool doThrow, std::size_t alignment, const void * hint )
 #endif
 {
 	if ( alignment > info_.alignment_ )
 	{
 		throw std::invalid_argument( "Requested alignment size must be less than or equal to initial alignment size." );
 	}
-	void * p = Allocate( size, doThrow );
+	void * p = Allocate( size, doThrow, hint );
 	return p;
 }
 
@@ -315,6 +315,16 @@ bool PoolAllocator::Release( void * place, std::size_t size, std::size_t alignme
 	}
 	const bool success = info_.Release( place );
 	return success;
+}
+
+// ----------------------------------------------------------------------------
+
+unsigned long long PoolAllocator::GetMaxSize( std::size_t objectSize ) const
+{
+	const unsigned long long bytesAvailable = memwa::impl::GetTotalAvailableMemory();
+	const unsigned long long maxPossibleBlocks = bytesAvailable / info_.blockSize_;
+	const unsigned long long maxPossibleObjects = maxPossibleBlocks / objectSize;
+	return maxPossibleObjects;
 }
 
 // ----------------------------------------------------------------------------
@@ -410,22 +420,22 @@ ThreadSafePoolAllocator::~ThreadSafePoolAllocator()
 
 // ----------------------------------------------------------------------------
 
-void * ThreadSafePoolAllocator::Allocate( std::size_t size, bool doThrow )
+void * ThreadSafePoolAllocator::Allocate( std::size_t size, bool doThrow, const void * hint )
 {
 	LockGuard guard( mutex_ );
-	return PoolAllocator::Allocate( size, doThrow );
+	return PoolAllocator::Allocate( size, doThrow, hint );
 }
 
 // ----------------------------------------------------------------------------
 
 #if __cplusplus > 201402L
-void * ThreadSafePoolAllocator::Allocate( std::size_t size, bool doThrow, std::align_val_t alignment )
+void * ThreadSafePoolAllocator::Allocate( std::size_t size, bool doThrow, std::align_val_t alignment, const void * hint )
 #else
-void * ThreadSafePoolAllocator::Allocate( std::size_t size, bool doThrow, std::size_t alignment )
+void * ThreadSafePoolAllocator::Allocate( std::size_t size, bool doThrow, std::size_t alignment, const void * hint )
 #endif
 {
 	LockGuard guard( mutex_ );
-	return PoolAllocator::Allocate( size, doThrow, alignment );
+	return PoolAllocator::Allocate( size, doThrow, alignment, hint );
 }
 
 // ----------------------------------------------------------------------------

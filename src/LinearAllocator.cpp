@@ -41,33 +41,33 @@ void LinearAllocator::Destroy()
 
 // ----------------------------------------------------------------------------
 
-void * LinearAllocator::Allocate( std::size_t size, std::size_t alignment )
+void * LinearAllocator::Allocate( std::size_t size, std::size_t alignment, const void * hint )
 {
 	if ( alignment > info_.alignment_ )
 	{
 		throw std::invalid_argument( "Requested alignment size must be less than or equal to initial alignment size." );
 	}
-	void * p = info_.Allocate( size );
+	void * p = info_.Allocate( size, hint );
 	return p;
 }
 
 // ----------------------------------------------------------------------------
 
 #if __cplusplus > 201402L
-void * LinearAllocator::Allocate( std::size_t size, bool doThrow, std::align_val_t alignment )
+void * LinearAllocator::Allocate( std::size_t size, bool doThrow, std::align_val_t alignment, const void * hint )
 #else
-void * LinearAllocator::Allocate( std::size_t size, bool doThrow, std::size_t alignment )
+void * LinearAllocator::Allocate( std::size_t size, bool doThrow, std::size_t alignment, const void * hint )
 #endif
 {
 
-	void * p = Allocate( size, alignment );
+	void * p = Allocate( size, alignment, hint );
 	if ( nullptr != p )
 	{
 		return p;
 	}
 	if ( TrimEmptyBlocks() )
 	{
-		p = LinearAllocator::Allocate( size, alignment );
+		p = LinearAllocator::Allocate( size, alignment, hint );
 		if ( nullptr != p )
 		{
 			return p;
@@ -75,7 +75,7 @@ void * LinearAllocator::Allocate( std::size_t size, bool doThrow, std::size_t al
 	}
 	if ( Allocator::TrimEmptyBlocks() )
 	{
-		p = LinearAllocator::Allocate( size, alignment );
+		p = LinearAllocator::Allocate( size, alignment, hint );
 	}
 	if ( ( nullptr == p ) && doThrow )
 	{
@@ -87,10 +87,20 @@ void * LinearAllocator::Allocate( std::size_t size, bool doThrow, std::size_t al
 
 // ----------------------------------------------------------------------------
 
-void * LinearAllocator::Allocate( std::size_t size, bool doThrow )
+void * LinearAllocator::Allocate( std::size_t size, bool doThrow, const void * hint )
 {
-	void * p = LinearAllocator::Allocate( size, doThrow, info_.alignment_ );
+	void * p = LinearAllocator::Allocate( size, doThrow, info_.alignment_, hint );
 	return p;
+}
+
+// ----------------------------------------------------------------------------
+
+unsigned long long LinearAllocator::GetMaxSize( std::size_t objectSize ) const
+{
+	const unsigned long long bytesAvailable = memwa::impl::GetTotalAvailableMemory();
+	const unsigned long long maxPossibleBlocks = bytesAvailable / info_.blockSize_;
+	const unsigned long long maxPossibleObjects = maxPossibleBlocks / objectSize;
+	return maxPossibleObjects;
 }
 
 // ----------------------------------------------------------------------------
@@ -135,22 +145,22 @@ ThreadSafeLinearAllocator::~ThreadSafeLinearAllocator()
 
 // ----------------------------------------------------------------------------
 
-void * ThreadSafeLinearAllocator::Allocate( std::size_t size, bool doThrow )
+void * ThreadSafeLinearAllocator::Allocate( std::size_t size, bool doThrow, const void * hint )
 {
 	LockGuard guard( mutex_ );
-	return LinearAllocator::Allocate( size, doThrow );
+	return LinearAllocator::Allocate( size, doThrow, hint );
 }
 
 // ----------------------------------------------------------------------------
 
 #if __cplusplus > 201402L
-void * ThreadSafeLinearAllocator::Allocate( std::size_t size, bool doThrow, std::align_val_t alignment )
+void * ThreadSafeLinearAllocator::Allocate( std::size_t size, bool doThrow, std::align_val_t alignment, const void * hint )
 #else
-void * ThreadSafeLinearAllocator::Allocate( std::size_t size, bool doThrow, std::size_t alignment )
+void * ThreadSafeLinearAllocator::Allocate( std::size_t size, bool doThrow, std::size_t alignment, const void * hint )
 #endif
 {
 	LockGuard guard( mutex_ );
-	return LinearAllocator::Allocate( size, doThrow, alignment );
+	return LinearAllocator::Allocate( size, doThrow, alignment, hint );
 }
 
 // ----------------------------------------------------------------------------

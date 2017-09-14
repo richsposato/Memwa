@@ -85,13 +85,13 @@ public:
     bool IsCorrupt( std::size_t objectSize ) const;
 
     /// Returns true if block at address P is inside this TinyBlock.
-    bool HasAddress( void * place, std::size_t blockSize ) const
+    bool HasAddress( const void * place, std::size_t blockSize ) const
     {
-        unsigned char * here = static_cast< unsigned char * >( place );
+        const unsigned char * const here = static_cast< const unsigned char * >( place );
         return ( block_ <= here ) && ( here < block_ + blockSize );
     }
 
-    bool IsBelowAddress( void * place, std::size_t poolSize ) const;
+    bool IsBelowAddress( const void * place, std::size_t poolSize ) const;
 
     bool operator < ( const TinyBlock & that ) const
     {
@@ -287,7 +287,7 @@ TinyObjectAllocator::~TinyObjectAllocator( void )
 
 // ----------------------------------------------------------------------------
 
-void * TinyObjectAllocator::Allocate( std::size_t objectSize, bool doThrow )
+void * TinyObjectAllocator::Allocate( std::size_t objectSize, bool doThrow, const void * hint )
 {
     const std::size_t alignedSize = memwa::CalculateBytesNeeded( objectSize, info_.alignment_ );
     if ( info_.objectSize_ != alignedSize )
@@ -295,21 +295,21 @@ void * TinyObjectAllocator::Allocate( std::size_t objectSize, bool doThrow )
         throw std::invalid_argument( "Error! Tried to allocate wrong size in PoolAllocator." );
     }
 
-    void * place = info_.Allocate();
+    void * place = info_.Allocate( hint );
     if ( nullptr != place )
     {
         return place;
     }
     if ( TrimEmptyBlocks() )
     {
-        place = info_.Allocate();
+        place = info_.Allocate( hint );
         if ( nullptr != place )
         {
             return place;
         }
     }
     memwa::impl::ManagerImpl::GetManager()->TrimEmptyBlocks( this );
-    place = info_.Allocate();
+    place = info_.Allocate( hint );
     if ( ( nullptr == place ) && doThrow )
     {
         throw std::bad_alloc();
@@ -321,16 +321,16 @@ void * TinyObjectAllocator::Allocate( std::size_t objectSize, bool doThrow )
 // ----------------------------------------------------------------------------
 
 #if __cplusplus > 201402L
-void * TinyObjectAllocator::Allocate( std::size_t size, bool doThrow, std::align_val_t alignment )
+void * TinyObjectAllocator::Allocate( std::size_t size, bool doThrow, std::align_val_t alignment, const void * hint )
 #else
-void * TinyObjectAllocator::Allocate( std::size_t size, bool doThrow, std::size_t alignment )
+void * TinyObjectAllocator::Allocate( std::size_t size, bool doThrow, std::size_t alignment, const void * hint )
 #endif
 {
     if ( alignment > info_.alignment_ )
     {
         throw std::invalid_argument( "Requested alignment size must be less than or equal to initial alignment size." );
     }
-    void * place = Allocate( size, doThrow );
+    void * place = Allocate( size, doThrow, hint );
     return place;
 }
 
@@ -372,6 +372,16 @@ bool TinyObjectAllocator::Release( void * place, std::size_t size, std::size_t a
     }
     const bool success = info_.Release( place );
     return success;
+}
+
+// ----------------------------------------------------------------------------
+
+unsigned long long TinyObjectAllocator::GetMaxSize( std::size_t objectSize ) const
+{
+    const unsigned long long bytesAvailable = memwa::impl::GetTotalAvailableMemory();
+    const unsigned long long maxPossibleBlocks = bytesAvailable / info_.blockSize_;
+    const unsigned long long maxPossibleObjects = maxPossibleBlocks / objectSize;
+    return maxPossibleObjects;
 }
 
 // ----------------------------------------------------------------------------
@@ -450,7 +460,7 @@ ThreadSafeTinyObjectAllocator::~ThreadSafeTinyObjectAllocator()
 
 // ----------------------------------------------------------------------------
 
-void * ThreadSafeTinyObjectAllocator::Allocate( std::size_t size, bool doThrow )
+void * ThreadSafeTinyObjectAllocator::Allocate( std::size_t size, bool doThrow, const void * hint )
 {
     LockGuard guard( mutex_ );
     return TinyObjectAllocator::Allocate( size, doThrow );
@@ -459,9 +469,9 @@ void * ThreadSafeTinyObjectAllocator::Allocate( std::size_t size, bool doThrow )
 // ----------------------------------------------------------------------------
 
 #if __cplusplus > 201402L
-void * ThreadSafeTinyObjectAllocator::Allocate( std::size_t size, bool doThrow, std::align_val_t alignment )
+void * ThreadSafeTinyObjectAllocator::Allocate( std::size_t size, bool doThrow, std::align_val_t alignment, const void * hint )
 #else
-void * ThreadSafeTinyObjectAllocator::Allocate( std::size_t size, bool doThrow, std::size_t alignment )
+void * ThreadSafeTinyObjectAllocator::Allocate( std::size_t size, bool doThrow, std::size_t alignment, const void * hint )
 #endif
 {
     LockGuard guard( mutex_ );

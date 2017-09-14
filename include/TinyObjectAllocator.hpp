@@ -32,16 +32,16 @@ public:
      @param doThrow True if this should throw a bad_alloc exception instead of returning nullptr.
      @return Pointer to chunk of memory of at least size bytes, or nullptr if it could not allocate.
      */
-    virtual void * Allocate( std::size_t size, bool doThrow ) override;
+    virtual void * Allocate( std::size_t size, bool doThrow, const void * hint = nullptr ) override;
 
 #if __cplusplus > 201402L
     // This code is for C++ 2017.
 
-    virtual void * Allocate( std::size_t size, bool doThrow, std::align_val_t alignment ) override;
+    virtual void * Allocate( std::size_t size, bool doThrow, std::align_val_t alignment, const void * hint = nullptr ) override;
 
 #else
 
-    virtual void * Allocate( std::size_t size, bool doThrow, std::size_t alignment ) override;
+    virtual void * Allocate( std::size_t size, bool doThrow, std::size_t alignment, const void * hint = nullptr ) override;
 
 #endif
 
@@ -61,6 +61,8 @@ public:
     virtual bool Release( void * place, std::size_t size, std::size_t alignment ) override;
 
 #endif
+
+    virtual unsigned long long GetMaxSize( std::size_t objectSize ) const override;
 
     /// Returns true if a block of memory managed by this object owns the chunk at the place
     virtual bool HasAddress( void * place ) const override;
@@ -118,16 +120,16 @@ public:
      @param doThrow True if this should throw a bad_alloc exception instead of returning nullptr.
      @return Pointer to chunk of memory of at least size bytes, or nullptr if it could not allocate.
      */
-    virtual void * Allocate( std::size_t size, bool doThrow ) override;
+    virtual void * Allocate( std::size_t size, bool doThrow, const void * hint = nullptr ) override;
 
 #if __cplusplus > 201402L
     // This code is for C++ 2017.
 
-    virtual void * Allocate( std::size_t size, bool doThrow, std::align_val_t alignment ) override;
+    virtual void * Allocate( std::size_t size, bool doThrow, std::align_val_t alignment, const void * hint = nullptr ) override;
 
 #else
 
-    virtual void * Allocate( std::size_t size, bool doThrow, std::size_t alignment ) override;
+    virtual void * Allocate( std::size_t size, bool doThrow, std::size_t alignment, const void * hint = nullptr ) override;
 
 #endif
 

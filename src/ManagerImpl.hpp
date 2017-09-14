@@ -22,6 +22,9 @@ std::size_t GetIndex( std::size_t alignment );
 
 void CheckInitializationParameters( unsigned int initialBlocks, std::size_t blockSize, std::size_t alignment );
 
+/// Returns the number of bytes the operating system will allow for allocation.
+unsigned long long GetTotalAvailableMemory();
+
 // ----------------------------------------------------------------------------
 
 class ManagerImpl

@@ -56,7 +56,7 @@ void * LinearBlock::Allocate( std::size_t bytes, std::size_t blockSize, std::siz
 
 // ----------------------------------------------------------------------------
 
-bool LinearBlock::HasAddress( void * place, std::size_t blockSize ) const
+bool LinearBlock::HasAddress( const void * place, std::size_t blockSize ) const
 {
 	if ( place < block_ )
 	{
@@ -71,7 +71,7 @@ bool LinearBlock::HasAddress( void * place, std::size_t blockSize ) const
 
 // ----------------------------------------------------------------------------
 
-bool LinearBlock::IsBelowAddress( void * place, std::size_t blockSize ) const
+bool LinearBlock::IsBelowAddress( const void * place, std::size_t blockSize ) const
 {
 	const bool below = ( block_ + blockSize <= place );
 	return below;
