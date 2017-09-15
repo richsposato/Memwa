@@ -357,12 +357,27 @@ Allocator * AllocatorManager::CreateAllocator( const AllocatorParameters & info 
 		{
 			case AllocatorType::Stack :
 			{
+				if ( info.objectSize < sizeof(std::size_t) )
+				{
+					throw std::invalid_argument(
+						"ThreadSafeStackAllocator should not be used to allocate object sizes smaller than size_t. Use ThreadSafeLinearAllocator or ThreadSafeTinyObjectAllocator instead." );
+				}
 				void * place = impl->Allocate( sizeof(ThreadSafeStackAllocator) );
 				allocator = new ( place ) ThreadSafeStackAllocator( info.initialBlocks, info.blockSize, info.alignment );
 				break;
 			}
 			case AllocatorType::Pool :
 			{
+				if ( info.objectSize < sizeof(void *) )
+				{
+					throw std::invalid_argument(
+						"ThreadSafePoolAllocator should not be used to allocate object sizes smaller than a pointer. Use ThreadSafeTinyObjectAllocator instead." );
+				}
+				if ( info.alignment < 4 )
+				{
+					throw std::invalid_argument(
+						"ThreadSafePoolAllocator should not be used alignment smaller than 4 bytes. Use ThreadSafeTinyObjectAllocator instead." );
+				}
 				void * place = impl->Allocate( sizeof(PoolAllocator) );
 				allocator = new ( place ) ThreadSafePoolAllocator( info.initialBlocks, info.blockSize, info.objectSize, info.alignment );
 				break;
@@ -379,8 +394,10 @@ Allocator * AllocatorManager::CreateAllocator( const AllocatorParameters & info 
 				allocator = new ( place ) ThreadSafeTinyObjectAllocator( info.initialBlocks, info.objectSize, info.alignment );
 			}
 			default:
+			{
 				assert( false );
-				break;
+				throw std::invalid_argument( "Unrecognized allocator type." );
+			}
 		}
 	}
 	else
@@ -389,12 +406,27 @@ Allocator * AllocatorManager::CreateAllocator( const AllocatorParameters & info 
 		{
 			case AllocatorType::Stack :
 			{
+				if ( info.objectSize < sizeof(std::size_t) )
+				{
+					throw std::invalid_argument(
+						"StackAllocator should not be used to allocate object sizes smaller than size_t. Use LinearAllocator or TinyObjectAllocator instead." );
+				}
 				void * place = impl->Allocate( sizeof(StackAllocator) );
 				allocator = new ( place ) StackAllocator( info.initialBlocks, info.blockSize, info.alignment );
 				break;
 			}
 			case AllocatorType::Pool :
 			{
+				if ( info.objectSize < sizeof(void *) )
+				{
+					throw std::invalid_argument(
+						"PoolAllocator should not be used to allocate object sizes smaller than a pointer. Use TinyObjectAllocator instead." );
+				}
+				if ( info.alignment < 4 )
+				{
+					throw std::invalid_argument(
+						"PoolAllocator should not be used alignment smaller than 4 bytes. Use TinyObjectAllocator instead." );
+				}
 				void * place = impl->Allocate( sizeof(PoolAllocator) );
 				allocator = new ( place ) PoolAllocator( info.initialBlocks, info.blockSize, info.objectSize, info.alignment );
 				break;
@@ -411,8 +443,10 @@ Allocator * AllocatorManager::CreateAllocator( const AllocatorParameters & info 
 				allocator = new ( place ) TinyObjectAllocator( info.initialBlocks, info.objectSize, info.alignment );
 			}
 			default:
+			{
 				assert( false );
-				break;
+				throw std::invalid_argument( "Unrecognized allocator type." );
+			}
 		}
 	}
 	return allocator;
