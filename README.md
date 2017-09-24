@@ -117,13 +117,17 @@ Memwa provides an adapter template class so programmers can use Memwa allocators
 * Use the hint parameter to increase likelihood of locality. <br/>
   The Allocate functions accept a hint parameter - which is defaulted to nullptr - so the next chunk of memory will (likely) be allocated within the same block as the previous chunk of memory. If the two chunks of memory are used together often, and those two chunks are on the same memory block, the CPU will not have to load two different pages into its local caches to use that data. If they are on different blocks, the CPU will consume many cycles to load the memory into caches.
 
-* Don't underalign. Underalignment leads to wasted space. <br/>
-  Underalignment is when a program wants to align an object on a boundary that is much bigger than the object size. For example, if an object is 4 bytes, it is a waste of space to align it on 8 byte boundaries. The first 4 bytes of a chunk would store the object, and the second 4 bytes would be wasted. It's more space efficient to align those objects on 4 byte boundaries.
+* Don't underalign. <br/>
+  Underalignment is when alignment is too small. Underalignment wastes time. <br/>
+  Underalignment is when a program wants to align an object on a boundary that is much bigger than the object size. If an object is 8 bytes, it is better to align it on 8 byte boundaries than to align it on 2 or 4 byte boundaries. Overalignment can lead to suboptimal behavior since the compiler must create additional instructions to fetch data that is partly in one 4-byte word and then get the rest of the data that is in another 4 byte word.
 
-* Don't overalign. Overalignment leads to wasted time. <br/>
-  Overalignment is when an object is aligned on a smaller byte boundary than it should be. If an object is 8 bytes, it is better to align it on 8 byte boundaries than to align it on 2 or 4 byte boundaries. Overalignment can lead to suboptimal behavior since the compiler must create additional instructions to fetch data that is partly in one 4-byte word and then get the rest of the data that is in another 4 byte word.
+* Don't overalign. <br/>
+  Overalignment is when alignment is too large. Overalignment wastes space. <br/>
+  Overalignment is when an object is aligned on a smaller byte boundary than it should be. For example, if an object is 4 bytes, it is a waste of space to align it on 8 byte boundaries. The first 4 bytes of a chunk would store the object, and the second 4 bytes are wasted. It's more space efficient to align those objects on 4 byte boundaries.
 
-* Create a new Memwa allocator for each purpose. Don't reuse an allocator for multiple purposes. <br/>
+* Create a new Memwa allocator for each purpose. Don't use an allocator for multiple purposes. <br/>
+  For example, if you have an allocator for a std::set, then don't use the same allocator for a different container or a different component. If your code is multi-threaded, then the different components will race against each other to use the allocator. <br/>
+  Each allocator has to maintain a collection of blocks. To deallocate a chunk, it does a binary search through the blocks to find which block owns that chunk. It is quicker for separate allocators to search a small number of blocks, than for a single allocator to search a large number of blocks.
 
 ## **Examples**
 
