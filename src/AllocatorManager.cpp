@@ -8,14 +8,19 @@
 #include "TinyObjectAllocator.hpp"
 
 #include <cassert>
+#include <cstdlib>
+#include <cstring>
 
 #include <algorithm>
 #include <stdexcept>
+#include <iostream>
 
 namespace memwa
 {
 namespace impl
 {
+
+ManagerImpl * ManagerImpl::impl_ = nullptr;
 
 // ----------------------------------------------------------------------------
 
@@ -25,10 +30,10 @@ namespace impl
 
 unsigned long long GetTotalAvailableMemory()
 {
-    const long pageCount = sysconf( _SC_PHYS_PAGES );
-    const long pageSize = sysconf( _SC_PAGE_SIZE );
-    const unsigned long long totalBytes = pageCount * pageSize;
-    return totalBytes;
+	const long pageCount = sysconf( _SC_PHYS_PAGES );
+	const long pageSize = sysconf( _SC_PAGE_SIZE );
+	const unsigned long long totalBytes = pageCount * pageSize;
+	return totalBytes;
 }
 
 #endif
@@ -41,28 +46,93 @@ unsigned long long GetTotalAvailableMemory()
 
 unsigned long long GetTotalAvailableMemory()
 {
-    MEMORYSTATUSEX status;
-    status.dwLength = sizeof( status );
-    GlobalMemoryStatusEx( &status );
-    return status.ullAvailVirtual;
+	MEMORYSTATUSEX status;
+	status.dwLength = sizeof( status );
+	GlobalMemoryStatusEx( &status );
+	return status.ullAvailVirtual;
 }
 
 #endif
 
 // ----------------------------------------------------------------------------
 
-std::size_t GetIndex( std::size_t alignment )
+std::size_t CalculateAlignmentPadding( std::size_t requestedAlignment )
 {
-	switch ( alignment )
+	const std::size_t maxAlignment = GetMaxSupportedAlignment();
+	if ( requestedAlignment < maxAlignment )
 	{
-		case 1:  return 0;
-		case 2:  return 1;
-		case 4:  return 2;
-		case 8:  return 3;
-		case 16: return 4;
-		default: assert( false );
+		return 0;
 	}
-	return 5;
+	const std::size_t padding = requestedAlignment - maxAlignment;
+	return padding;
+}
+
+// ----------------------------------------------------------------------------
+
+std::size_t CalculateAlignedSize( std::size_t bytes, std::size_t alignment )
+{
+	std::size_t multiplier = std::max( bytes / alignment, std::size_t(1) );
+	if ( multiplier * alignment < bytes )
+	{
+		multiplier++;
+	}
+	const std::size_t bytesNeeded = ( multiplier * alignment );
+	return bytesNeeded;
+}
+
+// ----------------------------------------------------------------------------
+
+bool GetConsistentAlignment( std::size_t alignment )
+{
+    const unsigned int chunkCount = 16;
+    void * places[ chunkCount ];
+    memset( places, 0, sizeof(places) );
+    bool consistent = true;
+
+    for ( unsigned int ii = 0;  ii < chunkCount; ++ii )
+    {
+        const std::size_t size = 1024 + rand() % 4096;
+        void * chunk = malloc( size );
+        places[ ii ] = chunk;
+    }
+
+    for ( unsigned int ii = 0;  ii < chunkCount; ++ii )
+    {
+        void * chunk = places[ ii ];
+        const std::size_t place = reinterpret_cast< const std::size_t >( chunk );
+        if ( place % alignment != 0 )
+        {
+            consistent = false;
+        }
+        free( chunk );
+    }
+
+    return consistent;
+}
+
+// ----------------------------------------------------------------------------
+
+std::size_t GetMaxSupportedAlignment()
+{
+    static std::size_t maxAlignment = 0;
+
+    if ( maxAlignment == 0 )
+    {
+        std::srand( std::time( 0 ) );
+        std::size_t alignment = 64;
+        while ( alignment > 1 )
+        {
+            const bool isConsistentAlignment = GetConsistentAlignment( alignment );
+            if ( isConsistentAlignment )
+            {
+                break;
+            }
+            alignment /= 2;
+        }
+        maxAlignment = alignment;
+    }
+
+    return maxAlignment;
 }
 
 // ----------------------------------------------------------------------------
@@ -71,7 +141,7 @@ bool ManagerImpl::CreateManager( bool multithreaded, std::size_t internalBlockSi
 {
 	if ( impl_ != nullptr )
 	{
-		return true;
+		return false;
 	}
 	impl_ = new ManagerImpl( multithreaded, internalBlockSize );
 	const bool success = ( impl_ != nullptr );
@@ -85,7 +155,9 @@ ManagerImpl::ManagerImpl( bool multithreaded, std::size_t internalBlockSize ) :
 	mutex_(),
 	allocators_(),
 	oldHandler_( std::set_new_handler( &NewHandler ) ),
-	common_( internalBlockSize, defaultAlignment )
+	blockSize_( internalBlockSize ),
+	alignment_( defaultAlignment ),
+	common_( blockSize_, alignment_ )
 {
 	allocators_.reserve( 4 );
 }
@@ -102,7 +174,7 @@ ManagerImpl::~ManagerImpl()
 void * ManagerImpl::Allocate( std::size_t bytes )
 {
 	LockGuard guard( mutex_, multithreaded_ );
-	void * p = common_.Allocate( bytes, AllocatorManager::CommonBlockSize, defaultAlignment );
+	void * p = common_.Allocate( bytes, blockSize_, alignment_ );
 	assert( p != nullptr );
 	return p;
 }
@@ -124,19 +196,12 @@ bool ManagerImpl::AddAllocator( Allocator * allocator )
 		}
 		if ( a == nullptr )
 		{
-			here = it;
+			*it = allocator;
+			return true;
 		}
 	}
 
-	if ( here == end )
-	{
-		allocators_.push_back( allocator );
-	}
-	else
-	{
-		*here = allocator;
-	}
-
+	allocators_.push_back( allocator );
 	return true;
 }
 
@@ -186,13 +251,18 @@ bool ManagerImpl::TrimEmptyBlocks( Allocator * allocator )
 		{
 			continue;
 		}
+		assert( a != nullptr );
 		if ( a->TrimEmptyBlocks() )
 		{
 			anyTrimmed = true;
 		}
 	}
+	if ( anyTrimmed )
+	{
+		return true;
+	}
 
-	if ( !anyTrimmed && ( oldHandler_ != nullptr ) )
+	if ( oldHandler_ != nullptr )
 	{
 		// The default new_handler may terminate the program by calling the abort or exit function.
 		// Because it might end the program, calling it is a last-ditch effort that should only be
@@ -224,47 +294,36 @@ void ManagerImpl::NewHandler()
 
 // ----------------------------------------------------------------------------
 
-void CheckInitializationParameters( unsigned int initialBlocks, std::size_t blockSize,
-	std::size_t alignment )
+void CheckInitializationParameters( const AllocatorManager::AllocatorParameters & info )
 {
-	if ( blockSize == 0 )
-	{
-		throw std::invalid_argument( "Memory block size may not be zero!" );
-	}
-	if ( ( alignment == 0 ) || ( AllocatorManager::MaxAlignment < alignment ) )
+	if ( ( info.alignment == 0 ) || ( AllocatorManager::MaxAlignment < info.alignment ) )
 	{
 		throw std::invalid_argument( "Memory alignment must be greater than zero and not greater than 32." );
 	}
-	if ( ( alignment & ( alignment - 1 ) ) != 0 )
+	if ( ( info.alignment & ( info.alignment - 1 ) ) != 0 )
 	{
 		throw std::invalid_argument( "Memory alignment must be a power of 2." );
 	}
-	if ( ( alignment != 1 ) && ( blockSize % alignment != 0 ) )
-	{
-		throw std::invalid_argument( "Memory block size must be a multiple of alignment." );
-	}
-	if ( initialBlocks == 0 )
+	if ( info.initialBlocks == 0 )
 	{
 		throw std::invalid_argument( "Number of memory blocks may not be zero!" );
+	}
+	if ( info.type != AllocatorManager::AllocatorType::Tiny )
+	{
+		if ( info.blockSize < 255 )
+		{
+			throw std::invalid_argument( "Memory block size should be bigger than 255 bytes." );
+		}
+		if ( ( info.alignment != 1 ) && ( info.blockSize % info.alignment != 0 ) )
+		{
+			throw std::invalid_argument( "Memory block size must be a multiple of alignment." );
+		}
 	}
 }
 
 // ----------------------------------------------------------------------------
 
 } // end anonymous namespace
-
-// ----------------------------------------------------------------------------
-
-std::size_t CalculateBytesNeeded( std::size_t bytes, std::size_t alignment )
-{
-	std::size_t multiplier = std::max( bytes / alignment, std::size_t(1) );
-	if ( multiplier * alignment < bytes )
-	{
-		multiplier++;
-	}
-	const std::size_t bytesNeeded = ( multiplier * alignment );
-	return bytesNeeded;
-}
 
 // ----------------------------------------------------------------------------
 
@@ -309,19 +368,19 @@ bool Allocator::Release( void * place, std::size_t size, std::size_t alignment )
 // ----------------------------------------------------------------------------
 
 #if __cplusplus > 201402L
-std::size_t Allocator::Resize( void * place, std::size_t oldSize, std::size_t newSize, std::align_val_t alignment )
+bool Allocator::Resize( void * place, std::size_t oldSize, std::size_t newSize, std::align_val_t alignment )
 #else
-std::size_t Allocator::Resize( void * place, std::size_t oldSize, std::size_t newSize, std::size_t alignment )
+bool Allocator::Resize( void * place, std::size_t oldSize, std::size_t newSize, std::size_t alignment )
 #endif
 {
-	return 0;
+	throw std::logic_error( "This allocator does not support resize operations." );
 }
 
 // ----------------------------------------------------------------------------
 
-std::size_t Allocator::Resize( void * place, std::size_t oldSize, std::size_t newSize )
+bool Allocator::Resize( void * place, std::size_t oldSize, std::size_t newSize )
 {
-	return 0;
+	throw std::logic_error( "This allocator does not support resize operations." );
 }
 
 // ----------------------------------------------------------------------------
@@ -348,7 +407,8 @@ Allocator * AllocatorManager::CreateAllocator( const AllocatorParameters & info 
 		throw std::logic_error( "Error! The AllocatorManager::CreateManager must be called before AllocatorManager::CreateAllocator." );
 	}
 
-	memwa::impl::CheckInitializationParameters( info.initialBlocks, info.blockSize, info.alignment );
+	memwa::impl::CheckInitializationParameters( info );
+	const std::size_t alignedSize = memwa::impl::CalculateAlignedSize( info.objectSize, info.alignment );
 
 	Allocator * allocator = nullptr;
 	if ( impl->IsMultithreaded() )
@@ -357,18 +417,17 @@ Allocator * AllocatorManager::CreateAllocator( const AllocatorParameters & info 
 		{
 			case AllocatorType::Stack :
 			{
-				if ( info.objectSize < sizeof(std::size_t) )
-				{
-					throw std::invalid_argument(
-						"ThreadSafeStackAllocator should not be used to allocate object sizes smaller than size_t. Use ThreadSafeLinearAllocator or ThreadSafeTinyObjectAllocator instead." );
-				}
-				void * place = impl->Allocate( sizeof(ThreadSafeStackAllocator) );
+				void * place = impl->Allocate( sizeof(ThreadSafeStackAllocator) + sizeof(void *) );
 				allocator = new ( place ) ThreadSafeStackAllocator( info.initialBlocks, info.blockSize, info.alignment );
 				break;
 			}
 			case AllocatorType::Pool :
 			{
-				if ( info.objectSize < sizeof(void *) )
+				if ( info.blockSize % alignedSize != 0 )
+				{
+					throw std::invalid_argument( "Blocksize should be an exact multiple of objectSize for ThreadSafePoolAllocator." );
+				}
+				if ( alignedSize < sizeof(void *) )
 				{
 					throw std::invalid_argument(
 						"ThreadSafePoolAllocator should not be used to allocate object sizes smaller than a pointer. Use ThreadSafeTinyObjectAllocator instead." );
@@ -378,24 +437,24 @@ Allocator * AllocatorManager::CreateAllocator( const AllocatorParameters & info 
 					throw std::invalid_argument(
 						"ThreadSafePoolAllocator should not be used alignment smaller than 4 bytes. Use ThreadSafeTinyObjectAllocator instead." );
 				}
-				void * place = impl->Allocate( sizeof(PoolAllocator) );
-				allocator = new ( place ) ThreadSafePoolAllocator( info.initialBlocks, info.blockSize, info.objectSize, info.alignment );
+				void * place = impl->Allocate( sizeof(ThreadSafePoolAllocator) + sizeof(void *) );
+				allocator = new ( place ) ThreadSafePoolAllocator( info.initialBlocks, info.blockSize, alignedSize, info.alignment );
 				break;
 			}
 			case AllocatorType::Linear :
 			{
-				void * place = impl->Allocate( sizeof(ThreadSafeLinearAllocator) );
+				void * place = impl->Allocate( sizeof(ThreadSafeLinearAllocator) + sizeof(void *) );
 				allocator = new ( place ) ThreadSafeLinearAllocator( info.initialBlocks, info.blockSize, info.alignment );
 				break;
 			}
 			case AllocatorType::Tiny :
 			{
-				void * place = impl->Allocate( sizeof(ThreadSafeTinyObjectAllocator) );
-				allocator = new ( place ) ThreadSafeTinyObjectAllocator( info.initialBlocks, info.objectSize, info.alignment );
+				void * place = impl->Allocate( sizeof(ThreadSafeTinyObjectAllocator) + sizeof(void *) );
+				allocator = new ( place ) ThreadSafeTinyObjectAllocator( info.initialBlocks, alignedSize, info.alignment );
+				break;
 			}
 			default:
 			{
-				assert( false );
 				throw std::invalid_argument( "Unrecognized allocator type." );
 			}
 		}
@@ -406,18 +465,17 @@ Allocator * AllocatorManager::CreateAllocator( const AllocatorParameters & info 
 		{
 			case AllocatorType::Stack :
 			{
-				if ( info.objectSize < sizeof(std::size_t) )
-				{
-					throw std::invalid_argument(
-						"StackAllocator should not be used to allocate object sizes smaller than size_t. Use LinearAllocator or TinyObjectAllocator instead." );
-				}
-				void * place = impl->Allocate( sizeof(StackAllocator) );
+				void * place = impl->Allocate( sizeof(StackAllocator) + sizeof(void *) );
 				allocator = new ( place ) StackAllocator( info.initialBlocks, info.blockSize, info.alignment );
 				break;
 			}
 			case AllocatorType::Pool :
 			{
-				if ( info.objectSize < sizeof(void *) )
+				if ( info.blockSize % alignedSize != 0 )
+				{
+					throw std::invalid_argument( "Blocksize should be an exact multiple of objectSize for ThreadSafePoolAllocator." );
+				}
+				if ( alignedSize < sizeof(void *) )
 				{
 					throw std::invalid_argument(
 						"PoolAllocator should not be used to allocate object sizes smaller than a pointer. Use TinyObjectAllocator instead." );
@@ -427,28 +485,33 @@ Allocator * AllocatorManager::CreateAllocator( const AllocatorParameters & info 
 					throw std::invalid_argument(
 						"PoolAllocator should not be used alignment smaller than 4 bytes. Use TinyObjectAllocator instead." );
 				}
-				void * place = impl->Allocate( sizeof(PoolAllocator) );
-				allocator = new ( place ) PoolAllocator( info.initialBlocks, info.blockSize, info.objectSize, info.alignment );
+				void * place = impl->Allocate( sizeof(PoolAllocator) + sizeof(void *) );
+				allocator = new ( place ) PoolAllocator( info.initialBlocks, info.blockSize, alignedSize, info.alignment );
 				break;
 			}
 			case AllocatorType::Linear :
 			{
-				void * place = impl->Allocate( sizeof(LinearAllocator) );
+				void * place = impl->Allocate( sizeof(LinearAllocator) + sizeof(void *) );
 				allocator = new ( place ) LinearAllocator( info.initialBlocks, info.blockSize, info.alignment );
 				break;
 			}
 			case AllocatorType::Tiny :
 			{
-				void * place = impl->Allocate( sizeof(TinyObjectAllocator) );
-				allocator = new ( place ) TinyObjectAllocator( info.initialBlocks, info.objectSize, info.alignment );
+//				std::cout << __FUNCTION__ << " : " << __LINE__ << "  alignedSize: " << alignedSize << "  alignment:" << info.alignment << std::endl;
+				void * place = impl->Allocate( sizeof(TinyObjectAllocator) + sizeof(void *) );
+//				std::cout << __FUNCTION__ << " : " << __LINE__ << std::endl;
+				allocator = new ( place ) TinyObjectAllocator( info.initialBlocks, alignedSize, info.alignment );
+//				std::cout << __FUNCTION__ << " : " << __LINE__ << std::endl;
+				break;
 			}
 			default:
 			{
-				assert( false );
 				throw std::invalid_argument( "Unrecognized allocator type." );
 			}
 		}
 	}
+
+	assert( allocator != nullptr );
 	return allocator;
 }
 
@@ -456,20 +519,22 @@ Allocator * AllocatorManager::CreateAllocator( const AllocatorParameters & info 
 
 bool AllocatorManager::DestroyAllocator( Allocator * allocator, bool releaseMemory )
 {
-	if ( allocator == nullptr )
-	{
-		return false;
-	}
 	memwa::impl::ManagerImpl * impl = memwa::impl::ManagerImpl::GetManager();
 	if ( nullptr == impl )
 	{
 		throw std::logic_error( "Error! The AllocatorManager::CreateManager must be called before AllocatorManager::DestroyAllocator." );
 	}
+	if ( allocator == nullptr )
+	{
+		return false;
+	}
 	if ( releaseMemory )
 	{
 		allocator->Destroy();
 	}
-	delete allocator;
+	allocator->~Allocator();
+	/// @todo Eventually this function will call impl to release the memory used by allocator.
+
 	return true;
 }
 
@@ -484,6 +549,13 @@ bool AllocatorManager::TrimEmptyBlocks()
 	}
 	const bool success = impl->TrimEmptyBlocks();
 	return success;
+}
+
+// ----------------------------------------------------------------------------
+
+std::size_t AllocatorManager::GetMaxSupportedAlignment()
+{
+	return memwa::impl::GetMaxSupportedAlignment();
 }
 
 // ----------------------------------------------------------------------------

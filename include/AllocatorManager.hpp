@@ -29,19 +29,18 @@ public:
 
 	/** Allocates a chunk of memory from a block.
 	 @param size Number of bytes to allocate.
-	 @param doThrow True if this should throw a bad_alloc exception instead of returning nullptr.
 	 @return Pointer to chunk of memory of at least size bytes, or nullptr if it could not allocate.
 	 */
-	virtual void * Allocate( std::size_t size, bool doThrow, const void * hint = nullptr ) = 0;
+	virtual void * Allocate( std::size_t size, const void * hint = nullptr ) = 0;
 
 #if __cplusplus > 201402L
 	// This code is for C++ 2017.
 
-	virtual void * Allocate( std::size_t size, bool doThrow, std::align_val_t alignment, const void * hint = nullptr ) = 0;
+	virtual void * Allocate( std::size_t size, std::align_val_t alignment, const void * hint = nullptr ) = 0;
 
 #else
 
-	virtual void * Allocate( std::size_t size, bool doThrow, std::size_t alignment, const void * hint = nullptr ) = 0;
+	virtual void * Allocate( std::size_t size, std::size_t alignment, const void * hint = nullptr ) = 0;
 
 #endif
 
@@ -65,17 +64,17 @@ public:
 #if __cplusplus > 201402L
 	// This code is for C++ 2017.
 
-	virtual std::size_t Resize( void * place, std::size_t oldSize, std::size_t newSize, std::align_val_t alignment );
+	virtual bool Resize( void * place, std::size_t oldSize, std::size_t newSize, std::align_val_t alignment );
 
 #else
 
-	virtual std::size_t Resize( void * place, std::size_t oldSize, std::size_t newSize, std::size_t alignment );
+	virtual bool Resize( void * place, std::size_t oldSize, std::size_t newSize, std::size_t alignment );
 
 #endif
 
 	/**
 	 */
-	virtual std::size_t Resize( void * place, std::size_t oldSize, std::size_t newSize );
+	virtual bool Resize( void * place, std::size_t oldSize, std::size_t newSize );
 
 	/// Provides count of maximum number of objects this can allocate at once.
 	virtual unsigned long long GetMaxSize( std::size_t objectSize ) const = 0;
@@ -130,7 +129,7 @@ public:
 		Linear,
 		Stack,
 		Pool,
-		Tiny, ///< For allocating objects smaller than 128 bytes.
+		Tiny, ///< For allocating objects from 1 through 128 bytes.
 	};
 
 	struct AllocatorParameters
@@ -173,6 +172,9 @@ public:
 	@return True if any blocks were released, false if none were.
 	 */
 	static bool TrimEmptyBlocks();
+
+	/// Provides maximum alignment supported by the operating system.
+	static std::size_t GetMaxSupportedAlignment();
 
 private:
 

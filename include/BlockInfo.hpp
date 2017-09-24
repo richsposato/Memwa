@@ -4,8 +4,8 @@
 #include <cassert>
 #include <cstddef> // For std::size_t.
 
-#ifdef MEMWA_DEBUGGING_ALLOCATORS
 	#include <iostream>
+#ifdef MEMWA_DEBUGGING_ALLOCATORS
 #endif
 
 #include <algorithm>
@@ -22,8 +22,6 @@ namespace memwa
 	class TinyBlock;
 //};
 
-std::size_t CalculateBytesNeeded( std::size_t bytes, std::size_t alignment );
-
 // ----------------------------------------------------------------------------
 
 template < class BlockType >
@@ -37,8 +35,8 @@ struct BlockInfo
 //	typedef typename BlockInfo< BlockType > MyType;
 
 	BlockInfo( unsigned int initialBlocks, std::size_t blockSize, std::size_t alignment ) :
-		blockSize_( 0 ),
-		alignment_( 0 ),
+		blockSize_( blockSize ),
+		alignment_( alignment ),
 		blocks_(),
 		recent_()
 	{
@@ -63,18 +61,21 @@ struct BlockInfo
 		}
 	}
 
-	BlockInfo( unsigned int initialBlocks, std::size_t blockSize, std::size_t alignment, std::size_t objectSize ) :
-		blockSize_( 0 ),
-		alignment_( 0 ),
+	/// This constructor is used by PoolAllocator and TinyBlockAllocator.
+	BlockInfo( unsigned int initialBlocks, std::size_t blockSize, std::size_t objectSize, std::size_t alignment ) :
+		blockSize_( blockSize ),
+		alignment_( alignment ),
 		blocks_(),
 		recent_()
 	{
+//	    std::cout << __FUNCTION__ << " : " << __LINE__ << std::endl;
+		const unsigned int objectsPerPool = blockSize / objectSize;
 		try
 		{
 			blocks_.reserve( initialBlocks );
 			for ( unsigned int ii = 0; ii < initialBlocks; ++ii )
 			{
-				BlockType block( blockSize_, alignment_, objectSize );
+				BlockType block( blockSize_, objectSize, alignment, objectsPerPool );
 				blocks_.push_back( block );
 			}
 			if ( initialBlocks != 1 )
@@ -82,15 +83,19 @@ struct BlockInfo
 				std::sort( blocks_.begin(), blocks_.end() );
 			}
 			recent_ = blocks_.begin();
+//	    	std::cout << __FUNCTION__ << " : " << __LINE__ << std::endl;
 		}
 		catch ( ... )
 		{
 			Destroy();
 			throw std::bad_alloc();
 		}
+//	    std::cout << __FUNCTION__ << " : " << __LINE__ << std::endl;
 	}
 
-	~BlockInfo() {}
+	~BlockInfo()
+	{
+	}
 
 	void Destroy()
 	{
@@ -174,7 +179,7 @@ struct BlockInfo
 			BlockType & block = *recent_;
 			if ( block.HasAddress( place, blockSize_ ) )
 			{
-				const bool success = block.Release( place, size, alignment_ );
+				const bool success = block.Release( place, size, blockSize_, alignment_ );
 				if ( success && block.IsEmpty( alignment_ ) )
 				{
 					block.Destroy();
@@ -191,7 +196,7 @@ struct BlockInfo
 			return false;
 		}	
 		BlockType & block = *it;
-		const bool success = block.Release( place, size, alignment_ );
+		const bool success = block.Release( place, size, blockSize_, alignment_ );
 		if ( success && block.IsEmpty( alignment_ ) )
 		{
 			const bool resetRecent = ( it == recent_ );
@@ -205,29 +210,29 @@ struct BlockInfo
 		return success;
 	}
 
-	std::size_t Resize( void * place, std::size_t oldSize, std::size_t newSize )
+	bool Resize( void * place, std::size_t oldSize, std::size_t newSize )
 	{
 		if ( blockSize_ < newSize )
 		{
-			return 0;
+			return false;
 		}
 		if ( recent_ != blocks_.end() )
 		{
 			BlockType & block = *recent_;
 			if ( block.HasAddress( place, blockSize_ ) )
 			{
-				const std::size_t actualSize = block.Resize( place, oldSize, newSize, blockSize_, alignment_ );
-				return actualSize;	
+				const bool success = block.Resize( place, oldSize, newSize, blockSize_, alignment_ );
+				return success;
 			}
 		}
 		BlocksIter it( GetBlock( place ) );
 		if ( it == blocks_.end() )
 		{
-			return 0;
+			return false;
 		}	
 		BlockType & block = *it;
-		const std::size_t actualSize = block.Resize( place, oldSize, newSize, blockSize_, alignment_ );
-		return actualSize;
+		const bool success = block.Resize( place, oldSize, newSize, blockSize_, alignment_ );
+		return success;
 	}
 
 	bool HasAddress( const void * place ) const
@@ -393,10 +398,12 @@ struct AnyPoolBlockInfo : BlockInfo< BlockType >
 	typedef typename BaseClass::BlocksIter BlocksIter;
 	typedef typename BaseClass::BlocksCIter BlocksCIter;
 
-	AnyPoolBlockInfo( unsigned int initialBlocks, std::size_t blockSize, std::size_t alignment, std::size_t objectSize ) :
-		BaseClass( initialBlocks, blockSize, alignment, CalculateBytesNeeded( objectSize, alignment ) ),
-		objectSize_( CalculateBytesNeeded( objectSize, alignment ) )
-	{}
+	AnyPoolBlockInfo( unsigned int initialBlocks, std::size_t blockSize, std::size_t objectSize, std::size_t alignment ) :
+		BaseClass( initialBlocks, blockSize, objectSize, alignment ),
+		objectSize_( objectSize )
+	{
+//    	std::cout << __FUNCTION__ << " : " << __LINE__ << std::endl;
+	}
 
 	~AnyPoolBlockInfo() {}
 
@@ -448,7 +455,7 @@ struct AnyPoolBlockInfo : BlockInfo< BlockType >
 
 		// Now try to create a new block and insert it into container.
 		const unsigned int objectsPerPool = BaseClass::blockSize_ / objectSize_;
-		BlockType block( BaseClass::blockSize_, objectsPerPool, BaseClass::alignment_ );
+		BlockType block( BaseClass::blockSize_, objectSize_, BaseClass::alignment_, objectsPerPool );
 		void * p = block.Allocate();
 		if ( nullptr == p )
 		{
@@ -556,9 +563,11 @@ struct TinyBlockPoolInfo : AnyPoolBlockInfo< BlockType >
 	typedef typename BaseClass::BlocksIter BlocksIter;
 	typedef typename BaseClass::BlocksCIter BlocksCIter;
 
-	TinyBlockPoolInfo( unsigned int initialBlocks, std::size_t blockSize, std::size_t alignment, std::size_t objectSize ) :
-		BaseClass( initialBlocks, blockSize, alignment, objectSize )
-	{}
+	TinyBlockPoolInfo( unsigned int initialBlocks, std::size_t blockSize, std::size_t objectSize, std::size_t alignment ) :
+		BaseClass( initialBlocks, blockSize, objectSize, alignment )
+	{
+//		std::cout << __FUNCTION__ << " : " << __LINE__ << std::endl;
+	}
 
 	~TinyBlockPoolInfo() {}
 
@@ -609,7 +618,8 @@ struct TinyBlockPoolInfo : AnyPoolBlockInfo< BlockType >
 		}
 
 		// Now try to create a new block and insert it into container.
-		BlockType block( BaseClass::blockSize_ );
+		const unsigned int objectsPerPool = BaseClass::blockSize_ / BaseClass::objectSize_;
+		BlockType block( BaseClass::blockSize_, BaseClass::objectSize_, BaseClass::alignment_, objectsPerPool );
 		void * p = block.Allocate( BaseClass::objectSize_ );
 		if ( nullptr == p )
 		{

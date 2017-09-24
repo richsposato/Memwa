@@ -16,17 +16,18 @@ namespace memwa
 // ----------------------------------------------------------------------------
 
 LinearBlock::LinearBlock( std::size_t blockSize, std::size_t alignment ) :
-	block_( nullptr ),
-	freeSpot_( nullptr )
+	block_( reinterpret_cast< unsigned char * >( std::malloc( blockSize ) ) ),
+	freeSpot_( block_ )
 {
-	const std::size_t remainder = reinterpret_cast< std::size_t >( block_ ) % alignment;
-	blockSize += remainder;
-	block_ = reinterpret_cast< unsigned char * >( std::malloc( blockSize ) );
 	if ( nullptr == block_ )
 	{
 		throw std::bad_alloc();
 	}
-	freeSpot_ = block_ + remainder;
+	const std::size_t blockPlace = reinterpret_cast< std::size_t >( block_ );
+	const std::size_t remainder = reinterpret_cast< std::size_t >( blockPlace ) % alignment;
+	const std::size_t padding = ( remainder == 0 ) ? 0 : alignment - remainder;
+	freeSpot_ += padding;
+	assert( reinterpret_cast< std::size_t >( freeSpot_ ) % alignment == 0 );
 }
 
 // ----------------------------------------------------------------------------
@@ -39,18 +40,34 @@ void LinearBlock::Destroy()
 
 // ----------------------------------------------------------------------------
 
+std::size_t LinearBlock::CalculatePadding( std::size_t alignment ) const
+{
+	const std::size_t freePlace = reinterpret_cast< const std::size_t >( freeSpot_ );
+	const std::size_t remainder = ( freePlace % alignment );
+	const std::size_t padding = ( remainder == 0 ) ? 0 : alignment - remainder;
+	return padding;
+}
+
+// ----------------------------------------------------------------------------
+
 void * LinearBlock::Allocate( std::size_t bytes, std::size_t blockSize, std::size_t alignment )
 {
-	const std::size_t bytesNeeded = memwa::CalculateBytesNeeded( bytes, alignment );
-	const std::size_t bytesAvailable = ( block_ + blockSize ) - freeSpot_;
-	const bool hasEnough = ( bytesNeeded <= bytesAvailable );
+	const unsigned char * const end = block_ + blockSize;
+	const std::size_t freePlace = reinterpret_cast< const std::size_t >( freeSpot_ );
+	const std::size_t padding = CalculatePadding( alignment );
+	const std::size_t blockPlace = reinterpret_cast< const std::size_t >( block_ );
+	const std::size_t bytesAvailable = ( blockPlace + blockSize ) - ( freePlace + padding );
+	const bool hasEnough = ( bytes <= bytesAvailable );
 	if ( !hasEnough )
 	{
 		return nullptr;
 	}
 
-	void * p = freeSpot_;
-	freeSpot_ += bytesNeeded;
+	unsigned char * p = freeSpot_ + padding;
+	freeSpot_ = p + bytes;
+	assert( p < freeSpot_ );
+	assert( freeSpot_ <= end );
+	assert( reinterpret_cast< const std::size_t >( p ) % alignment == 0 );
 	return p;
 }
 
@@ -81,20 +98,12 @@ bool LinearBlock::IsBelowAddress( const void * place, std::size_t blockSize ) co
 
 bool LinearBlock::HasBytesAvailable( std::size_t bytes, std::size_t blockSize, std::size_t alignment ) const
 {
-	const std::size_t bytesNeeded = memwa::CalculateBytesNeeded( bytes, alignment );
-	const std::size_t bytesAvailable = ( block_ + blockSize ) - freeSpot_;
-	const bool hasEnough = ( bytesNeeded <= bytesAvailable );
+	const std::size_t freePlace = reinterpret_cast< const std::size_t >( freeSpot_ );
+	const std::size_t padding = CalculatePadding( alignment );
+	const std::size_t blockPlace = reinterpret_cast< const std::size_t >( block_ );
+	const std::size_t bytesAvailable = ( blockPlace + blockSize ) - ( freePlace + padding );
+	const bool hasEnough = ( bytes <= bytesAvailable );
 	return hasEnough;
-}
-
-// ----------------------------------------------------------------------------
-
-bool LinearBlock::IsEmpty( std::size_t alignment ) const
-{
-	const std::size_t remainder = reinterpret_cast< std::size_t >( block_ ) % alignment;
-	const unsigned char * place = block_ + remainder;
-	const bool empty = ( place == freeSpot_ );
-	return empty;
 }
 
 // ----------------------------------------------------------------------------
@@ -103,6 +112,7 @@ bool LinearBlock::IsCorrupt( std::size_t blockSize, std::size_t alignment ) cons
 {
 	assert( this != nullptr );
 	assert( block_ != nullptr );
+	assert( freeSpot_ != nullptr );
 	assert( block_ <= freeSpot_ );
 	assert( block_ + blockSize >= freeSpot_ );
 	return false;

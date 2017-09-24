@@ -1,8 +1,8 @@
 
 #pragma once
 
+#include "AllocatorManager.hpp"
 #include "LockGuard.hpp"
-
 #include "LinearBlock.hpp"
 
 #include <new>
@@ -18,9 +18,15 @@ namespace memwa
 namespace impl
 {
 
-std::size_t GetIndex( std::size_t alignment );
+void CheckInitializationParameters( const AllocatorManager::AllocatorParameters & info );
 
-void CheckInitializationParameters( unsigned int initialBlocks, std::size_t blockSize, std::size_t alignment );
+std::size_t CalculateAlignedSize( std::size_t bytes, std::size_t alignment );
+
+/// Calculates amount of padding needed if requestedAlignment > maximum alignment.
+std::size_t CalculateAlignmentPadding( std::size_t requestedAlignment );
+
+/// Provides maximum alignment supported by operating system.
+std::size_t GetMaxSupportedAlignment();
 
 /// Returns the number of bytes the operating system will allow for allocation.
 unsigned long long GetTotalAvailableMemory();
@@ -31,7 +37,7 @@ class ManagerImpl
 {
 public:
 
-	static const std::size_t defaultAlignment = 8;
+	static const std::size_t defaultAlignment = 4;
 
 	static ManagerImpl * GetManager()
 	{
@@ -74,6 +80,11 @@ private:
 	Allocators allocators_;
 
 	std::new_handler oldHandler_;
+
+	/// Size of entire memory page.
+	std::size_t blockSize_;
+	/// Byte alignment of allocations. (e.g. - 1, 2, 4, 8, 16, or 32.)
+	std::size_t alignment_;
 
 	LinearBlock common_;
 

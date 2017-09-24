@@ -33,19 +33,18 @@ public:
 
 	/** Allocates a chunk of memory from a block.
 	 @param size Number of bytes to allocate.
-	 @param doThrow True if this should throw a bad_alloc exception instead of returning nullptr.
 	 @return Pointer to chunk of memory of at least size bytes, or nullptr if it could not allocate.
 	 */
-	virtual void * Allocate( std::size_t size, bool doThrow, const void * hint = nullptr ) override;
+	virtual void * Allocate( std::size_t size, const void * hint = nullptr ) override;
 
 #if __cplusplus > 201402L
 	// This code is for C++ 2017.
 
-	virtual void * Allocate( std::size_t size, bool doThrow, std::align_val_t alignment, const void * hint = nullptr ) override;
+	virtual void * Allocate( std::size_t size, std::align_val_t alignment, const void * hint = nullptr ) override;
 
 #else
 
-	virtual void * Allocate( std::size_t size, bool doThrow, std::size_t alignment, const void * hint = nullptr ) override;
+	virtual void * Allocate( std::size_t size, std::size_t alignment, const void * hint = nullptr ) override;
 
 #endif
 
@@ -69,17 +68,17 @@ public:
 #if __cplusplus > 201402L
 	// This code is for C++ 2017.
 
-	virtual std::size_t Resize( void * place, std::size_t oldSize, std::size_t newSize, std::align_val_t alignment ) override;
+	virtual bool Resize( void * place, std::size_t oldSize, std::size_t newSize, std::align_val_t alignment ) override;
 
 #else
 
-	virtual std::size_t Resize( void * place, std::size_t oldSize, std::size_t newSize, std::size_t alignment ) override;
+	virtual bool Resize( void * place, std::size_t oldSize, std::size_t newSize, std::size_t alignment ) override;
 
 #endif
 
 	/**
 	 */
-	virtual std::size_t Resize( void * place, std::size_t oldSize, std::size_t newSize ) override;
+	virtual bool Resize( void * place, std::size_t oldSize, std::size_t newSize ) override;
 
 	virtual unsigned long long GetMaxSize( std::size_t objectSize ) const override;
 
@@ -122,8 +121,6 @@ private:
 	/// Goes through container of blocks to delete each one.
 	void Destroy();
 
-	void * Allocate( std::size_t size, std::size_t alignment, const void * hint );
-
 	StackBlockInfo info_;
 
 };
@@ -136,19 +133,18 @@ public:
 
 	/** Allocates a chunk of memory from a block.
 	 @param size Number of bytes to allocate.
-	 @param doThrow True if this should throw a bad_alloc exception instead of returning nullptr.
 	 @return Pointer to chunk of memory of at least size bytes, or nullptr if it could not allocate.
 	 */
-	virtual void * Allocate( std::size_t size, bool doThrow, const void * hint = nullptr ) override;
+    virtual void * Allocate( std::size_t size, const void * hint = nullptr ) override;
 
 #if __cplusplus > 201402L
-	// This code is for C++ 2017.
+    // This code is for C++ 2017.
 
-	virtual void * Allocate( std::size_t size, bool doThrow, std::align_val_t alignment, const void * hint = nullptr ) override;
+    virtual void * Allocate( std::size_t size, std::align_val_t alignment, const void * hint = nullptr ) override;
 
 #else
 
-	virtual void * Allocate( std::size_t size, bool doThrow, std::size_t alignment, const void * hint = nullptr ) override;
+    virtual void * Allocate( std::size_t size, std::size_t alignment, const void * hint = nullptr ) override;
 
 #endif
 
@@ -172,17 +168,17 @@ public:
 #if __cplusplus > 201402L
 	// This code is for C++ 2017.
 
-	virtual std::size_t Resize( void * place, std::size_t oldSize, std::size_t newSize, std::align_val_t alignment ) override;
+	virtual bool Resize( void * place, std::size_t oldSize, std::size_t newSize, std::align_val_t alignment ) override;
 
 #else
 
-	virtual std::size_t Resize( void * place, std::size_t oldSize, std::size_t newSize, std::size_t alignment ) override;
+	virtual bool Resize( void * place, std::size_t oldSize, std::size_t newSize, std::size_t alignment ) override;
 
 #endif
 
 	/**
 	 */
-	virtual std::size_t Resize( void * place, std::size_t oldSize, std::size_t newSize ) override;
+	virtual bool Resize( void * place, std::size_t oldSize, std::size_t newSize ) override;
 
 	/// Returns true if a block of memory managed by this object owns the chunk at the place
 	virtual bool HasAddress( void * place ) const override;

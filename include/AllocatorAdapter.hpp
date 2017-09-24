@@ -64,6 +64,7 @@ public :
     inline explicit Allocator( Allocator< U > const & that ) :
         allocator_( that.allocator_ ) {}
 
+    /// Allows code to set allocator pointer in case it was not set by constructor.
     inline void set( AllocatorType * allocator )
     {
         if ( allocator_ == nullptr )
@@ -72,7 +73,7 @@ public :
         }
     }
 
-    inline AllocatorType * get() const
+    inline const AllocatorType * get() const
     {
         return allocator_;
     }

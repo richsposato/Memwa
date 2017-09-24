@@ -28,7 +28,7 @@ public:
 
 	~LinearBlock() = default;
 
-	void * Allocate( std::size_t size, std::size_t blockSize, std::size_t alignment );
+	void * Allocate( std::size_t bytes, std::size_t blockSize, std::size_t alignment );
 
 	void Destroy();
 
@@ -43,11 +43,23 @@ public:
 		return ( block_ < that.block_ );
 	}
 
-	bool IsEmpty( std::size_t alignment ) const;
+	bool IsEmpty( std::size_t alignment ) const
+	{
+		return ( block_ == freeSpot_ );
+	}
 
 	bool IsCorrupt( std::size_t blockSize, std::size_t alignment ) const;
 
+	/// Returns the number of available bytes within this block.
+	std::size_t GetFreeBytes( std::size_t blockSize ) const
+	{
+		const std::size_t bytesAvailable = ( block_ + blockSize ) - freeSpot_;
+		return bytesAvailable;	
+	}
+
 private:
+
+	std::size_t CalculatePadding( std::size_t blockSize ) const;
 
 	/// Pointer to base of entire memory page allocated.
 	unsigned char * block_;
