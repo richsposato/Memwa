@@ -1,0 +1,14 @@
+# Ignore build and run artifacts.
+
+*.o
+*.exe
+*.stackdump
+
+# Ignore directory for storing object files.
+
+./src/obj
+
+# Ignore test results that are not in the ./test/result directory.
+
+./test/functional/*.txt
+./test/functional/*.html
