@@ -21,7 +21,8 @@ StackBlock::StackBlock( const std::size_t blockSize, const std::size_t alignment
 	{
 		throw std::bad_alloc();
 	}
-	assert( alignment != 0 );
+	assert( 0 != alignment );
+	assert( 0 != blockSize );
 /*
 	const std::size_t blockPlace = reinterpret_cast< std::size_t >( block_ );
 	// This if statement is in case the caller wants this allocator's alignment to be bigger than operating system alignment.
@@ -49,6 +50,10 @@ void StackBlock::Destroy()
 
 void * StackBlock::Allocate( const std::size_t bytes, const std::size_t blockSize, const std::size_t alignment )
 {
+	assert( 0 != alignment );
+	assert( 0 != blockSize );
+	assert( 0 != bytes );
+
 //	std::cout << __FUNCTION__ << " : " << __LINE__ << std::endl;
 	const std::size_t bytesNeeded = memwa::impl::CalculateAlignedSize( bytes, alignment ) + sizeof(ChunkInfo);
 	const std::size_t bytesAvailable = ( block_ + blockSize ) - freeSpot_;
@@ -78,6 +83,10 @@ void * StackBlock::Allocate( const std::size_t bytes, const std::size_t blockSiz
 
 bool StackBlock::Release( void * place, const std::size_t bytes, const std::size_t blockSize, const std::size_t alignment )
 {
+	assert( 0 != alignment );
+	assert( 0 != blockSize );
+	assert( 0 != bytes );
+
 //	std::cout << __FUNCTION__ << " : " << __LINE__ << std::endl;
 	if ( IsEmpty( alignment ) )
 	{
@@ -109,6 +118,11 @@ bool StackBlock::Release( void * place, const std::size_t bytes, const std::size
 
 bool StackBlock::Resize( void * place, const std::size_t oldSize, const std::size_t newSize, const std::size_t blockSize, const std::size_t alignment )
 {
+	assert( 0 != alignment );
+	assert( 0 != blockSize );
+	assert( 0 != oldSize );
+	assert( 0 != newSize );
+
 //	std::cout << __FUNCTION__ << " : " << __LINE__ << std::endl;
 	if ( IsEmpty( alignment ) )
 	{
@@ -172,6 +186,7 @@ bool StackBlock::Resize( void * place, const std::size_t oldSize, const std::siz
 
 bool StackBlock::IsBelowAddress( const void * chunk, const std::size_t blockSize ) const
 {
+	assert( 0 != blockSize );
 	const bool below = ( block_ + blockSize <= chunk );
 	return below;
 }
@@ -180,6 +195,7 @@ bool StackBlock::IsBelowAddress( const void * chunk, const std::size_t blockSize
 
 bool StackBlock::HasAddress( const void * chunk, const std::size_t blockSize ) const
 {
+	assert( 0 != blockSize );
 	if ( chunk < block_ )
 	{
 		return false;
@@ -195,6 +211,8 @@ bool StackBlock::HasAddress( const void * chunk, const std::size_t blockSize ) c
 
 bool StackBlock::HasBytesAvailable( const std::size_t bytes, const std::size_t blockSize, const std::size_t alignment ) const
 {
+	assert( 0 != alignment );
+	assert( 0 != blockSize );
 	const std::size_t bytesNeeded = memwa::impl::CalculateAlignedSize( bytes, alignment ) + sizeof(ChunkInfo);
 	const std::size_t bytesAvailable = ( block_ + blockSize ) - freeSpot_;
 	const bool hasEnough = ( bytesNeeded <= bytesAvailable );
@@ -205,6 +223,7 @@ bool StackBlock::HasBytesAvailable( const std::size_t bytes, const std::size_t b
 
 bool StackBlock::IsEmpty( const std::size_t alignment ) const
 {
+	assert( 0 != alignment );
 	const bool empty = ( block_ == freeSpot_ );
 	return empty;
 }
@@ -213,6 +232,9 @@ bool StackBlock::IsEmpty( const std::size_t alignment ) const
 
 std::size_t StackBlock::GetChunkSize( const unsigned int index, const std::size_t blockSize, const std::size_t alignment ) const
 {
+	assert( 0 != alignment );
+	assert( 0 != blockSize );
+
 	if ( block_ == freeSpot_ )
 	{
 		return 0;
@@ -231,6 +253,7 @@ std::size_t StackBlock::GetChunkSize( const unsigned int index, const std::size_
 		++count;
 	}
 	assert( place == block_ ); // pointer to previous chunk may not be before first chunk.
+
 	return 0;
 }
 
@@ -238,6 +261,9 @@ std::size_t StackBlock::GetChunkSize( const unsigned int index, const std::size_
 
 unsigned int StackBlock::GetObjectCount( const std::size_t blockSize, const std::size_t alignment ) const
 {
+	assert( 0 != alignment );
+	assert( 0 != blockSize );
+
 	if ( block_ == freeSpot_ )
 	{
 		return 0;
@@ -254,6 +280,7 @@ unsigned int StackBlock::GetObjectCount( const std::size_t blockSize, const std:
 		++count;
 	}
 	assert( place == block_ ); // pointer to previous chunk may not be before first chunk.
+
 	return count;
 }
 
@@ -261,6 +288,7 @@ unsigned int StackBlock::GetObjectCount( const std::size_t blockSize, const std:
 
 std::size_t StackBlock::GetFreeBytes( const std::size_t blockSize ) const
 {
+	assert( 0 != blockSize );
 	const std::size_t byteDifference = freeSpot_ - block_;
 	const std::size_t bytesAvailable = blockSize - byteDifference;
 	if ( bytesAvailable < sizeof(ChunkInfo) )
@@ -274,6 +302,8 @@ std::size_t StackBlock::GetFreeBytes( const std::size_t blockSize ) const
 
 unsigned char * StackBlock::GetPreviousPlace( unsigned char * place, const std::size_t blockSize, const std::size_t alignment )
 {
+	assert( 0 != alignment );
+	assert( 0 != blockSize );
 	unsigned char * p = place - sizeof(ChunkInfo);
 	const ChunkInfo * chunk = reinterpret_cast< ChunkInfo * >( p );
 	assert( chunk->IsValid( block_, blockSize, alignment ) );
@@ -285,6 +315,9 @@ unsigned char * StackBlock::GetPreviousPlace( unsigned char * place, const std::
 
 bool StackBlock::IsCorrupt( const std::size_t blockSize, const std::size_t alignment ) const
 {
+	assert( 0 != alignment );
+	assert( 0 != blockSize );
+
 //	std::cout << __FUNCTION__ << " : " << __LINE__ << std::endl;
 //	OutputContents( blockSize, alignment );
 	assert( this != nullptr );
@@ -330,6 +363,9 @@ bool StackBlock::IsCorrupt( const std::size_t blockSize, const std::size_t align
 
 void StackBlock::OutputContents( const std::size_t blockSize, const std::size_t alignment ) const
 {
+	assert( 0 != alignment );
+	assert( 0 != blockSize );
+
 //	std::cout << __FUNCTION__ << " : " << __LINE__ << std::endl;
 	const bool empty = ( freeSpot_ == block_ );
 	const std::size_t * p = reinterpret_cast< std::size_t * >( block_ );
@@ -368,6 +404,9 @@ void StackBlock::OutputContents( const std::size_t blockSize, const std::size_t 
 
 const bool StackBlock::ChunkInfo::IsValid( const unsigned char * block, const std::size_t blockSize, const std::size_t alignment ) const
 {
+	assert( 0 != alignment );
+	assert( 0 != blockSize );
+
 	assert( this != nullptr );
 	assert( prevChunk_ != nullptr );
 	assert( prevChunk_ >= block );
