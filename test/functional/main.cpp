@@ -280,9 +280,11 @@ void TestTinyBlock()
 	alignment = 8;
 	TestTinyBlock( u, objectSize, alignment );
 
+/*
 	objectSize = 32;
 	alignment = 16;
 	TestTinyBlock( u, objectSize, alignment );
+*/
 }
 
 // ----------------------------------------------------------------------------
@@ -696,8 +698,6 @@ void TestStackBlockResize()
 	std::size_t blockSize = 400;
 	std::size_t alignment = 4;
 	TestStackBlockResize( u, blockSize, alignment );
-
-	std::cout << __FUNCTION__ << " : " << __LINE__ << std::endl;
 
 	blockSize = 400;
 	alignment = 8;
@@ -1157,13 +1157,12 @@ int main( int argc, const char * const argv[] )
 //	TestLinearBlock();
 	TestStackBlock();
 	TestStackBlockResize();
-/*
-	TestStackBlockComplex();
+//	TestStackBlockComplex();
 	TestPoolBlock();
 	TestTinyBlock();
 	TestAllocatorManager();
 	TestAlignment();
-*/
+
 	if ( !args.DoMakeTableAtExitTime() )
 	{
 		uts.OutputSummary();
