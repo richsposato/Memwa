@@ -310,6 +310,10 @@ void CheckInitializationParameters( const AllocatorManager::AllocatorParameters 
 	}
 	if ( info.type != AllocatorManager::AllocatorType::Tiny )
 	{
+		if ( info.blockSize <= info.alignment )
+		{
+			throw std::invalid_argument( "Memory block size should be bigger than alignment." );
+		}
 		if ( info.blockSize < 255 )
 		{
 			throw std::invalid_argument( "Memory block size should be bigger than 255 bytes." );
