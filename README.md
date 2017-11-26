@@ -9,6 +9,7 @@
 &nbsp;&nbsp;&nbsp;&nbsp;[Alignment-Aware](https://github.com/richsposato/Memwa#alignment-aware) <br/>
 &nbsp;&nbsp;&nbsp;&nbsp;[Resize In Place](https://github.com/richsposato/Memwa#resize-in-place) <br/>
 &nbsp;&nbsp;&nbsp;&nbsp;[C++17 Compatible](https://github.com/richsposato/Memwa#c17-compatible) <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;[Reliance on Standard Functions](https://github.com/richsposato/Memwa#Reliance-on-Standard-Functions) <br/>
 &nbsp;[Using Memwa](https://github.com/richsposato/Memwa#using-memwa) <br/>
 &nbsp;&nbsp;&nbsp;&nbsp;[Build Instructions](https://github.com/richsposato/Memwa#build-instructions) <br/>
 &nbsp;&nbsp;&nbsp;&nbsp;[Alignment](https://github.com/richsposato/Memwa#alignment) <br/>
@@ -66,6 +67,10 @@ These terms are used within the documentation and code for Memwa.
 
 Memwa is an alignment-aware allocator. When code requests a chunk of memory that is aligned on 1, 2, 4, 8, 16, or 32 byte boundaries, a Memwa allocator can fill that request. Although the C++ Standard says allocator "behavior is undefined if this is not a valid alignment value", Memwa will simply throw std::invalid_argument if the alignment is not correct.
 
+Memwa may allocate extra bytes in each block so it can guarantee that each chunk is aligned on the appropriate byte boundary. For alignment sizes greater than 8, Memwa will add the alignment size to the block size. These extra bytes might be wasted depending on how the allocator algorithm uses the block size and alignment, or the extra bytes may be available for allocation into chunks. You can guarantee zero wasted bytes by never requesting alignment greater than 8 bytes. If you need alignments of 16, 32, or more, Memwa will provide that.
+
+The alignment size should always be smaller than the block size.
+
 ## **Resize In Place**
 
 Sometimes you need to expand a chunk of memory, such as when you push an object onto the back of a std::vector, or add an element to a std::deque. This may require allocating a bigger chunk of memory, copying/moving all the elements to the new chunk, destructing all the elements in the old chunk, and then finally releasing the old chunk. A more efficient container would ask its allocator to simply expand the existing chunk, and then add the new elements into the annexed region of the new chunk. Unfortunately, STL containers don't work this way (yet) and STL allocators were not designed to support that need.
@@ -83,6 +88,14 @@ The 2017 version of C++ introduced several features related to memory allocation
  Several recently added new and delete operators use the std::align_val_t parameter for alignment-aware allocators.
 * The allocator trait for is_always_equal.
  Memwa's allocator adapter class provides the is_always_equal trait so compilers don't assume all Memwa allocators are equal.
+
+## **Reliance on Standard Functions**
+
+Memwa only uses functions and types provided by the C++ Standard. The release version does not use any third party components so you don't have to link any other libraries into your software when you choose Memwa.
+
+It makes as extensive use of std functions and types as possible.
+
+Memwa uses functions in the std namespace where such functions provide the functionality Memwa needs. (e.g. - It uses std::align to align chunks on the appropriate byte boundaries instead of having its own function to do the same behavior.)
 
 # Using Memwa
 
