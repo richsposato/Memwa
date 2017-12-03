@@ -13,7 +13,7 @@ using namespace std;
 void CommandLineArgs::ShowHelp( void ) const
 {
 	cout << "Usage: " << m_exeName << endl;
-	cout << " [-f] [-p] [-z] [-a] [-o:[ndhmptw]]" << endl;
+	cout << " [-f] [-p] [-D] [-z] [-a] [-o:[ndhmptw]]" << endl;
 	cout << " [-s] [-t:file] [-h:file] [-x:file] [-?] [--help]" << endl;
 	cout << endl;
 	cout << "Parameters: (order of parameters does not matter)" << endl;
@@ -24,7 +24,7 @@ void CommandLineArgs::ShowHelp( void ) const
 	cout << "  -z  Do not do any tests - just make summary table." << endl;
 	cout << "	  Incompatible with -f, -p, and -r." << endl;
 	cout << "  -a  Assert when test fails." << endl;
-	cout << "  -L  Let singleton live at exit time, do not delete it." << endl;	
+	cout << "  -D  Output sizes of Datatypes and alignment." << endl;	
 	cout << "  -o  Set output options." << endl;
 	cout << "	  n  No extra output options." << endl;
 	cout << "		 This is incompatible with any other output option."
