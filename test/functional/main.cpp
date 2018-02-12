@@ -391,6 +391,7 @@ void TestAlignment()
 		UNIT_TEST_WITH_MSG( u, ( place = allocator->Allocate( allocatorInfo.objectSize ) ) != nullptr, "Should allocate correct size." );
 		address = reinterpret_cast< std::size_t >( place );
 		UNIT_TEST_WITH_MSG( u, ( address % allocatorInfo.alignment == 0 ), "Address should be aligned as requested." );
+		UNIT_TEST_WITH_MSG( u, allocator->Release( place, allocatorInfo.objectSize ), "Allocator should release memory." );
 		UNIT_TEST_WITH_MSG( u, AllocatorManager::DestroyAllocator( allocator, true ), "DestroyAllocator should pass since parameter is valid." );
 	}
 
@@ -404,6 +405,7 @@ void TestAlignment()
 		UNIT_TEST_WITH_MSG( u, ( place = allocator->Allocate( allocatorInfo.objectSize ) ) != nullptr, "Should allocate correct size." );
 		address = reinterpret_cast< std::size_t >( place );
 		UNIT_TEST_WITH_MSG( u, ( address % allocatorInfo.alignment == 0 ), "Address should be aligned as requested." );
+		UNIT_TEST_WITH_MSG( u, allocator->Release( place, allocatorInfo.objectSize ), "Allocator should release memory." );
 		UNIT_TEST_WITH_MSG( u, AllocatorManager::DestroyAllocator( allocator, true ), "DestroyAllocator should pass since parameter is valid." );
 	}
 
@@ -417,6 +419,7 @@ void TestAlignment()
 		UNIT_TEST_WITH_MSG( u, ( place = allocator->Allocate( allocatorInfo.objectSize ) ) != nullptr, "Should allocate correct size." );
 		address = reinterpret_cast< std::size_t >( place );
 		UNIT_TEST_WITH_MSG( u, ( address % allocatorInfo.alignment == 0 ), "Address should be aligned as requested." );
+		UNIT_TEST_WITH_MSG( u, allocator->Release( place, allocatorInfo.objectSize ), "Allocator should release memory." );
 		UNIT_TEST_WITH_MSG( u, AllocatorManager::DestroyAllocator( allocator, true ), "DestroyAllocator should pass since parameter is valid." );
 	}
 
@@ -429,6 +432,7 @@ void TestAlignment()
 		UNIT_TEST_WITH_MSG( u, ( place = allocator->Allocate( allocatorInfo.objectSize ) ) != nullptr, "Should allocate correct size." );
 		address = reinterpret_cast< std::size_t >( place );
 		UNIT_TEST_WITH_MSG( u, ( address % allocatorInfo.alignment == 0 ), "Address should be aligned as requested." );
+		UNIT_TEST_WITH_MSG( u, allocator->Release( place, allocatorInfo.objectSize ), "Allocator should release memory." );
 		UNIT_TEST_WITH_MSG( u, AllocatorManager::DestroyAllocator( allocator, true ), "DestroyAllocator should pass since parameter is valid." );
 	}
 
@@ -442,6 +446,7 @@ void TestAlignment()
 		UNIT_TEST_WITH_MSG( u, ( place = allocator->Allocate( allocatorInfo.objectSize ) ) != nullptr, "Should allocate correct size." );
 		address = reinterpret_cast< std::size_t >( place );
 		UNIT_TEST_WITH_MSG( u, ( address % allocatorInfo.alignment == 0 ), "Address should be aligned as requested." );
+		UNIT_TEST_WITH_MSG( u, allocator->Release( place, allocatorInfo.objectSize ), "Allocator should release memory." );
 		UNIT_TEST_WITH_MSG( u, AllocatorManager::DestroyAllocator( allocator, true ), "DestroyAllocator should pass since parameter is valid." );
 	}
 
