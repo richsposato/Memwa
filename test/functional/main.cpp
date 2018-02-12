@@ -493,12 +493,12 @@ int main( int argc, const char * const argv[] )
 		return 0;
 	}
 
-	ut::UnitTestSet & uts = ut::UnitTestSet::GetIt();
 	const bool deleteAtExitTime = args.DeleteAtExitTime();
 	const ut::UnitTestSet::OutputOptions options = args.GetOutputOptions();
 	const ut::UnitTestSet::ErrorState status = ut::UnitTestSet::Create(
 		"Memwa Functionality Tests", args.GetTextFileName(), args.GetHtmlFileName(),
 		args.GetXmlFileName(), options, deleteAtExitTime );
+	ut::UnitTestSet & uts = ut::UnitTestSet::GetIt();
 	if ( ( status != ut::UnitTestSet::Success )
 	  && ( status != ut::UnitTestSet::AlreadyExists ) )
 	{
@@ -517,7 +517,7 @@ int main( int argc, const char * const argv[] )
 	TestAllocatorManager();
 	TestAlignment();
 
-	if ( !args.DoMakeTableAtExitTime() )
+	if ( args.DoMakeTableAtExitTime() )
 	{
 		uts.OutputSummary();
 	}
