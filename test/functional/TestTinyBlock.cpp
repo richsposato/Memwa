@@ -3,6 +3,8 @@
 
 #include "UnitTest.hpp"
 
+#include <iostream>
+
 #include <cstdlib>
 
 using namespace std;
@@ -117,43 +119,54 @@ void TestTinyBlock()
 	ut::UnitTestSet & uts = ut::UnitTestSet::GetIt();
 	ut::UnitTest * u = uts.AddUnitTest( "Test TinyBlock" );
 
+	std::cout << std::endl << "Testing Various BlockSizes and Alignments with TinyBlock." << std::endl
+		<< "Object Size \t Alignment" << std::endl
+		<< "==========================" << std::endl;
+
 	std::size_t objectSize = 1;
 	std::size_t alignment = 1;
 	TestTinyBlock( u, objectSize, alignment );
+	std::cout << objectSize << "\t\t" << alignment << std::endl;
 
 	objectSize = 2;
 	alignment = 2;
 	TestTinyBlock( u, objectSize, alignment );
+	std::cout << objectSize << "\t\t" << alignment << std::endl;
 
 	objectSize = 4;
 	alignment = 4;
 	TestTinyBlock( u, objectSize, alignment );
+	std::cout << objectSize << "\t\t" << alignment << std::endl;
 
 	objectSize = 4;
 	alignment = 2;
 	TestTinyBlock( u, objectSize, alignment );
+	std::cout << objectSize << "\t\t" << alignment << std::endl;
 
 	objectSize = 8;
 	alignment = 4;
 	TestTinyBlock( u, objectSize, alignment );
+	std::cout << objectSize << "\t\t" << alignment << std::endl;
 
 	objectSize = 16;
 	alignment = 8;
 	TestTinyBlock( u, objectSize, alignment );
+	std::cout << objectSize << "\t\t" << alignment << std::endl;
 
 	objectSize = 12;
 	alignment = 4;
 	TestTinyBlock( u, objectSize, alignment );
+	std::cout << objectSize << "\t\t" << alignment << std::endl;
 
 	objectSize = 32;
 	alignment = 8;
 	TestTinyBlock( u, objectSize, alignment );
+	std::cout << objectSize << "\t\t" << alignment << std::endl;
 
-/*
 	objectSize = 32;
 	alignment = 16;
 	TestTinyBlock( u, objectSize, alignment );
-*/
+	std::cout << objectSize << "\t\t" << alignment << std::endl;
 }
 
 // ----------------------------------------------------------------------------
