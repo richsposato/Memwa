@@ -150,6 +150,23 @@ bool ManagerImpl::CreateManager( bool multithreaded, std::size_t internalBlockSi
 
 // ----------------------------------------------------------------------------
 
+bool ManagerImpl::DestroyManager( bool releaseAll )
+{
+	if ( impl_ == nullptr )
+	{
+		return false;
+	}
+	if ( releaseAll )
+	{
+		impl_->ReleaseAllocators();
+	}
+	delete impl_;
+	impl_ = nullptr;
+	return true;
+}
+
+// ----------------------------------------------------------------------------
+
 ManagerImpl::ManagerImpl( bool multithreaded, std::size_t internalBlockSize ) :
 	multithreaded_( multithreaded ),
 	mutex_(),
@@ -166,7 +183,22 @@ ManagerImpl::ManagerImpl( bool multithreaded, std::size_t internalBlockSize ) :
 
 ManagerImpl::~ManagerImpl()
 {
+	LockGuard guard( mutex_, multithreaded_ );
 	std::set_new_handler( oldHandler_ );
+}
+
+// ----------------------------------------------------------------------------
+
+void ManagerImpl::ReleaseAllocators()
+{
+	const AllocatorsIter end( allocators_.end() );
+	AllocatorsIter here( end );
+	for ( AllocatorsIter it( allocators_.begin() ); it != end; ++it )
+	{
+		Allocator * a = *it;
+		*it = nullptr;
+		delete a;
+	}
 }
 
 // ----------------------------------------------------------------------------
@@ -333,21 +365,36 @@ void CheckInitializationParameters( const AllocatorManager::AllocatorParameters 
 
 Allocator::Allocator()
 {
-	memwa::impl::ManagerImpl::GetManager()->AddAllocator( this );
+	memwa::impl::ManagerImpl * impl = memwa::impl::ManagerImpl::GetManager();
+	if ( nullptr == impl )
+	{
+		return;
+	}
+	impl->AddAllocator( this );
 }
 
 // ----------------------------------------------------------------------------
 
 Allocator::~Allocator()
 {
-	memwa::impl::ManagerImpl::GetManager()->RemoveAllocator( this );
+	memwa::impl::ManagerImpl * impl = memwa::impl::ManagerImpl::GetManager();
+	if ( nullptr == impl )
+	{
+		return;
+	}
+	impl->RemoveAllocator( this );
 }
 
 // ----------------------------------------------------------------------------
 
 bool Allocator::TrimEmptyBlocks()
 {
-	const bool success = memwa::impl::ManagerImpl::GetManager()->TrimEmptyBlocks( this );
+	memwa::impl::ManagerImpl * impl = memwa::impl::ManagerImpl::GetManager();
+	if ( nullptr == impl )
+	{
+		return false;
+	}
+	const bool success = impl->TrimEmptyBlocks( this );
 	return success;
 }
 
@@ -398,6 +445,14 @@ void Allocator::Destroy()
 bool AllocatorManager::CreateManager( bool multithreaded, std::size_t initalBlockSize )
 {
 	const bool success = memwa::impl::ManagerImpl::CreateManager( multithreaded, initalBlockSize );
+	return success;
+}
+
+// ----------------------------------------------------------------------------
+
+bool AllocatorManager::DestroyManager( bool releaseAll )
+{
+	const bool success = memwa::impl::ManagerImpl::DestroyManager( releaseAll );
 	return success;
 }
 
@@ -477,7 +532,7 @@ Allocator * AllocatorManager::CreateAllocator( const AllocatorParameters & info 
 			{
 				if ( info.blockSize % alignedSize != 0 )
 				{
-					throw std::invalid_argument( "Blocksize should be an exact multiple of objectSize for ThreadSafePoolAllocator." );
+					throw std::invalid_argument( "Blocksize should be an exact multiple of objectSize for PoolAllocator." );
 				}
 				if ( alignedSize < sizeof(void *) )
 				{
@@ -501,11 +556,8 @@ Allocator * AllocatorManager::CreateAllocator( const AllocatorParameters & info 
 			}
 			case AllocatorType::Tiny :
 			{
-//				std::cout << __FUNCTION__ << " : " << __LINE__ << "  alignedSize: " << alignedSize << "  alignment:" << info.alignment << std::endl;
 				void * place = impl->Allocate( sizeof(TinyObjectAllocator) + sizeof(void *) );
-//				std::cout << __FUNCTION__ << " : " << __LINE__ << std::endl;
 				allocator = new ( place ) TinyObjectAllocator( info.initialBlocks, alignedSize, info.alignment );
-//				std::cout << __FUNCTION__ << " : " << __LINE__ << std::endl;
 				break;
 			}
 			default:

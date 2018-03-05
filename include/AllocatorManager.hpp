@@ -8,6 +8,11 @@ namespace memwa
 
 	class AllocatorManager;
 
+	namespace impl
+	{
+		class ManagerImpl;
+	}
+
 /** @todo
  Things to do:
  - Add try-catch blocks around each piece of code that can throw.
@@ -101,6 +106,7 @@ protected:
 private:
 
 	friend class AllocatorManager;
+	friend class impl::ManagerImpl;
 
 	Allocator( const Allocator & ) = delete;
 	Allocator( Allocator && ) = delete;
@@ -146,6 +152,8 @@ public:
 	};
 
 	static bool CreateManager( bool multithreaded, std::size_t internalBlockSize = CommonBlockSize );
+
+	static bool DestroyManager( bool releaseAll );
 
 	static Allocator * CreateAllocator( const AllocatorParameters & allocatorInfo );
 

@@ -46,6 +46,8 @@ public:
 
 	static bool CreateManager( bool multithreaded, std::size_t internalBlockSize );
 
+	static bool DestroyManager( bool releaseAll );
+
 	void * Allocate( std::size_t bytes );
 
 	bool AddAllocator( Allocator * allocator );
@@ -65,11 +67,13 @@ private:
 	typedef std::vector< Allocator * > Allocators;
 	typedef Allocators::iterator AllocatorsIter;
 
+	static void NewHandler();
+
 	ManagerImpl( bool multithreaded, std::size_t internalBlockSize );
 
 	~ManagerImpl();
 
-	static void NewHandler();
+	void ReleaseAllocators();
 
 	static ManagerImpl * impl_;
 
