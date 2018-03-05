@@ -4,6 +4,7 @@
 #include "UnitTest.hpp"
 
 #include <algorithm>
+#include <iostream>
 
 #include <cstdlib>
 
@@ -96,19 +97,35 @@ void TestLinearBlock()
 	std::size_t alignment = 4;
 	TestLinearBlock( u, blockSize, alignment );
 
+	std::cout << std::endl << "Simple Test of Various BlockSizes and Alignments with LinearBlock." << std::endl
+		<< "Block Size \t Alignment" << std::endl
+		<< "========================" << std::endl;
+	std::cout << blockSize << "\t\t" << alignment << std::endl;
+
 	blockSize = 400;
 	alignment = 8;
 	TestLinearBlock( u, blockSize, alignment );
+	std::cout << blockSize << "\t\t" << alignment << std::endl;
 
 	blockSize = 400;
 	alignment = 16;
 	TestLinearBlock( u, blockSize, alignment );
+	std::cout << blockSize << "\t\t" << alignment << std::endl;
 
 	blockSize = 800;
 	alignment = 32;
 	TestLinearBlock( u, blockSize, alignment );
+	std::cout << blockSize << "\t\t" << alignment << std::endl;
 
-	/// @note Make note that LinearAllocator can't support alignment of 16 or more.
+	blockSize = 1600;
+	alignment = 64;
+	TestLinearBlock( u, blockSize, alignment );
+	std::cout << blockSize << "\t\t" << alignment << std::endl;
+
+	blockSize = 6400;
+	alignment = 128;
+	TestLinearBlock( u, blockSize, alignment );
+	std::cout << blockSize << "\t\t" << alignment << std::endl;
 }
 
 // ----------------------------------------------------------------------------
