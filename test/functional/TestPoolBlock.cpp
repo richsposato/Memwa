@@ -3,6 +3,8 @@
 
 #include "UnitTest.hpp"
 
+#include <iostream>
+
 #include <cstdlib>
 
 using namespace std;
@@ -107,19 +109,38 @@ void TestPoolBlock()
 	ut::UnitTestSet & uts = ut::UnitTestSet::GetIt();
 	ut::UnitTest * u = uts.AddUnitTest( "Test PoolBlock" );
 
+	std::cout << std::endl << "Testing Various BlockSizes and Alignments with PoolBlock." << std::endl
+		<< "Block Size \t Object Size \t Alignment" << std::endl
+		<< "=========================================" << std::endl;
+
 	std::size_t blockSize = 80;
 	std::size_t alignedSize = 8;
 	std::size_t alignment = 4;
 	TestPoolBlock( u, blockSize, alignedSize, alignment );
+	std::cout << blockSize << "\t\t" << alignedSize << "\t\t" << alignment << std::endl;
 
-	blockSize = 96;
+	blockSize = 400;
 	alignedSize = 16;
 	alignment = 8;
 	TestPoolBlock( u, blockSize, alignedSize, alignment );
-/*
-	blockSize = 96;
+	std::cout << blockSize << "\t\t" << alignedSize << "\t\t" << alignment << std::endl;
+
+	blockSize = 800;
 	alignedSize = 16;
 	alignment = 16;
+	TestPoolBlock( u, blockSize, alignedSize, alignment );
+	std::cout << blockSize << "\t\t" << alignedSize << "\t\t" << alignment << std::endl;
+
+/*
+	blockSize = 1600;
+	alignedSize = 32;
+	alignment = 32;
+	TestPoolBlock( u, blockSize, alignedSize, alignment );
+	std::cout << blockSize << "\t\t" << alignedSize << "\t\t" << alignment << std::endl;
+
+	blockSize = 6400;
+	alignedSize = 64;
+	alignment = 64;
 	TestPoolBlock( u, blockSize, alignedSize, alignment );
 */
 	/// @todo Make note that PoolAllocator won't support alignment of 32.
