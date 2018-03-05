@@ -34,6 +34,7 @@ StackBlock::StackBlock( const std::size_t blockSize, const std::size_t alignment
 	}
 */
 	assert( reinterpret_cast< std::size_t >( freeSpot_ ) % alignment == 0 );
+	assert( !IsCorrupt( blockSize, alignment ) );
 }
 
 // ----------------------------------------------------------------------------
@@ -53,6 +54,7 @@ void * StackBlock::Allocate( const std::size_t bytes, const std::size_t blockSiz
 	assert( 0 != alignment );
 	assert( 0 != blockSize );
 	assert( 0 != bytes );
+	assert( !IsCorrupt( blockSize, alignment ) );
 
 //	std::cout << __FUNCTION__ << " : " << __LINE__ << std::endl;
 	const std::size_t bytesNeeded = memwa::impl::CalculateAlignedSize( bytes, alignment ) + sizeof(ChunkInfo);
@@ -76,6 +78,7 @@ void * StackBlock::Allocate( const std::size_t bytes, const std::size_t blockSiz
 	assert( reinterpret_cast< std::size_t >( p ) % alignment == 0 );
 	assert( reinterpret_cast< unsigned char * >( chunk ) > p );
 
+	assert( !IsCorrupt( blockSize, alignment ) );
 	return p;
 }
 
@@ -86,6 +89,7 @@ bool StackBlock::Release( void * place, const std::size_t bytes, const std::size
 	assert( 0 != alignment );
 	assert( 0 != blockSize );
 	assert( 0 != bytes );
+	assert( !IsCorrupt( blockSize, alignment ) );
 
 //	std::cout << __FUNCTION__ << " : " << __LINE__ << std::endl;
 	if ( IsEmpty( alignment ) )
@@ -99,18 +103,37 @@ bool StackBlock::Release( void * place, const std::size_t bytes, const std::size
 	const std::size_t bytesNeeded = memwa::impl::CalculateAlignedSize( bytes, alignment ) + sizeof(ChunkInfo);
 	if ( chunk->prevChunkSize_ != bytesNeeded )
 	{
-		throw std::invalid_argument( "Error found by StackAllocator. The memory requested to release does not match internal storage of that size." );
+		std::string message( "Error found by StackAllocator. The memory requested to release does not match internal storage of that size. " );
+		char buffer[ 256 ];
+		snprintf( buffer, sizeof(buffer), "  alignment: %lu  bytes requested: %lu  bytes needed with alignment+overhead: %lu  prev chunk size: %lu ",
+			alignment, bytes, bytesNeeded, chunk->prevChunkSize_ );
+		message += buffer;
+//		OutputContents( blockSize, alignment );
+		throw std::invalid_argument( message );
 	}
 	if ( place < chunk->prevChunk_ )
 	{
-		throw std::invalid_argument( "Error found by StackAllocator. The requested place to release is not the most recently allocated chunk in its block." );
+		std::string message( "Error found by StackAllocator. The requested place to release is not the most recently allocated chunk in its block. " );
+		char buffer[ 256 ];
+		snprintf( buffer, sizeof(buffer), "  place: %lu  prev chunk: %lu ",
+			reinterpret_cast< std::size_t >( place ), reinterpret_cast< std::size_t >( chunk->prevChunk_ ) );
+		message += buffer;
+//		OutputContents( blockSize, alignment );
+		throw std::invalid_argument( message );
 	}
 	if ( place != chunk->prevChunk_ )
 	{
-		throw std::invalid_argument( "Error found by StackAllocator. The requested place to release does not match internal storage of that place." );
+		std::string message( "Error found by StackAllocator. The requested place to release does not match internal storage of that place. " );
+		char buffer[ 256 ];
+		snprintf( buffer, sizeof(buffer), "   place: %lu  prev chunk: %lu ",
+			reinterpret_cast< std::size_t >( place ), reinterpret_cast< std::size_t >( chunk->prevChunk_ ) );
+		message += buffer;
+//		OutputContents( blockSize, alignment );
+		throw std::invalid_argument( message );
 	}
 	freeSpot_ = chunk->prevChunk_;
 
+	assert( !IsCorrupt( blockSize, alignment ) );
 	return true;
 }
 
@@ -122,6 +145,7 @@ bool StackBlock::Resize( void * place, const std::size_t oldSize, const std::siz
 	assert( 0 != blockSize );
 	assert( 0 != oldSize );
 	assert( 0 != newSize );
+	assert( !IsCorrupt( blockSize, alignment ) );
 
 //	std::cout << __FUNCTION__ << " : " << __LINE__ << std::endl;
 	if ( IsEmpty( alignment ) )
@@ -136,13 +160,32 @@ bool StackBlock::Resize( void * place, const std::size_t oldSize, const std::siz
 	assert( chunk->prevChunkSize_ + chunk->prevChunk_ == freeSpot_ );
 	if ( place < chunk->prevChunk_ )
 	{
-		std::cout << __FUNCTION__ << " : " << __LINE__ << std::endl;
-		throw std::invalid_argument( "Error found by StackAllocator. The requested place to resize is not the most recently allocated chunk in its block." );
+/*		std::cout << __FUNCTION__ << " : " << __LINE__
+			<< "   prev chunk size : " << chunk->prevChunkSize_
+			<< "   old size : " << oldSize << std::endl;
+		OutputContents( blockSize, alignment );
+*/
+		std::string message( "Error found by StackAllocator. The requested place to resize is not the most recently allocated chunk in its block. " );
+		char buffer[ 256 ];
+		snprintf( buffer, sizeof(buffer), "  place: %lu  prev chunk: %lu ",
+			reinterpret_cast< std::size_t >( place ), reinterpret_cast< std::size_t >( chunk->prevChunk_ ) );
+		message += buffer;
+		throw std::invalid_argument( message );
 	}
 	if ( place != chunk->prevChunk_ )
 	{
-		std::cout << __FUNCTION__ << " : " << __LINE__ << std::endl;
-		throw std::invalid_argument( "Error found by StackAllocator. The requested place to release does not match internal storage of that place." );
+/*
+		std::cout << __FUNCTION__ << " : " << __LINE__
+			<< "   prev chunk size : " << chunk->prevChunkSize_
+			<< "   old size : " << oldSize << std::endl;
+		OutputContents( blockSize, alignment );
+*/
+		std::string message( "Error found by StackAllocator. The requested place to resize does not match internal storage of that place. " );
+		char buffer[ 256 ];
+		snprintf( buffer, sizeof(buffer), "  place: %lu  prev chunk: %lu ",
+			reinterpret_cast< std::size_t >( place ), reinterpret_cast< std::size_t >( chunk->prevChunk_ ) );
+		message += buffer;
+		throw std::invalid_argument( message );
 	}
 	const std::size_t oldBytesNeeded = memwa::impl::CalculateAlignedSize( oldSize, alignment ) + sizeof(ChunkInfo);
 	if ( chunk->prevChunkSize_ != oldBytesNeeded )
@@ -150,8 +193,15 @@ bool StackBlock::Resize( void * place, const std::size_t oldSize, const std::siz
 /*		std::cout << __FUNCTION__ << " : " << __LINE__
 			<< "   prev chunk size : " << chunk->prevChunkSize_
 			<< "   old bytes needed : " << oldBytesNeeded
-			<< "   old size : " << oldSize << std::endl; */
-		throw std::invalid_argument( "Error found by StackAllocator. The memory requested to resize does not match internal storage of that size." );
+			<< "   old size : " << oldSize << std::endl;
+		OutputContents( blockSize, alignment );
+*/
+		std::string message( "Error found by StackAllocator. The memory requested to resize does not match internal storage of that size. " );
+		char buffer[ 256 ];
+		snprintf( buffer, sizeof(buffer), "  alignment: %lu  bytes requested: %lu  bytes needed with alignment+overhead: %lu  prev chunk size: %lu ",
+			alignment, oldSize, oldBytesNeeded, chunk->prevChunkSize_ );
+		message += buffer;
+		throw std::invalid_argument( message );
 	}
 
 	const std::size_t newBytesNeeded = memwa::impl::CalculateAlignedSize( newSize, alignment ) + sizeof(ChunkInfo);
@@ -166,7 +216,8 @@ bool StackBlock::Resize( void * place, const std::size_t oldSize, const std::siz
 /*			std::cout << __FUNCTION__ << " : " << __LINE__ << "  blockSize: " << blockSize
 				<< "  oldSize: " << oldSize << "  newSize: " << newSize << "  alignment: " << alignment
 				<< "  available: " << bytesAvailable << "  bytesNeeded: " << newBytesNeeded << std::endl;
-			OutputContents( blockSize, alignment ); */
+			OutputContents( blockSize, alignment );
+*/
 			return false;
 		}
 	}
@@ -179,6 +230,7 @@ bool StackBlock::Resize( void * place, const std::size_t oldSize, const std::siz
 	chunk->prevChunkSize_ = newBytesNeeded;
 	assert( chunk->IsValid( block_, blockSize, alignment ) );
 
+	assert( !IsCorrupt( blockSize, alignment ) );
 	return true;
 }
 
@@ -234,6 +286,7 @@ std::size_t StackBlock::GetChunkSize( const unsigned int index, const std::size_
 {
 	assert( 0 != alignment );
 	assert( 0 != blockSize );
+	assert( !IsCorrupt( blockSize, alignment ) );
 
 	if ( block_ == freeSpot_ )
 	{
@@ -263,6 +316,7 @@ unsigned int StackBlock::GetObjectCount( const std::size_t blockSize, const std:
 {
 	assert( 0 != alignment );
 	assert( 0 != blockSize );
+	assert( !IsCorrupt( blockSize, alignment ) );
 
 	if ( block_ == freeSpot_ )
 	{
@@ -365,6 +419,7 @@ void StackBlock::OutputContents( const std::size_t blockSize, const std::size_t 
 {
 	assert( 0 != alignment );
 	assert( 0 != blockSize );
+	assert( !IsCorrupt( blockSize, alignment ) );
 
 //	std::cout << __FUNCTION__ << " : " << __LINE__ << std::endl;
 	const bool empty = ( freeSpot_ == block_ );
@@ -372,21 +427,18 @@ void StackBlock::OutputContents( const std::size_t blockSize, const std::size_t 
 	const std::size_t * f = reinterpret_cast< std::size_t * >( freeSpot_ );
 	const std::size_t freeBytes = ( block_ + blockSize ) - freeSpot_;
 	const std::size_t usedBytes = freeSpot_ - block_;
-	std::cout << '\t' << this
-		<< '\t' << " Block: " << reinterpret_cast< std::size_t >( p )
-		<< '\t' << " Free Spot: " << reinterpret_cast< std::size_t >( f )
-		<< '\t' << " Free Bytes: " << freeBytes
-		<< '\t' << " Used Bytes: " << usedBytes
-		<< '\t' << " Empty? " << empty
-		<< std::endl;
+	std::size_t countedBytes = 0;
+	unsigned int chunkCount = 0;
 
 	if ( !empty )
 	{
 		unsigned char * place = freeSpot_;
 		while ( place > block_ )
 		{
+			++chunkCount;
 			place -= sizeof(ChunkInfo);
 			const ChunkInfo * chunk = reinterpret_cast< ChunkInfo * >( place );
+			countedBytes += chunk->prevChunkSize_;
 			std::cout << "\t\t  place: " << reinterpret_cast< std::size_t >( chunk )
 				<< " \t chunk: " << reinterpret_cast< std::size_t >( chunk->prevChunk_ )
 				<< " \t chunk size: " << chunk->prevChunkSize_
@@ -396,6 +448,16 @@ void StackBlock::OutputContents( const std::size_t blockSize, const std::size_t 
 		}
 		assert( place == block_ );
 	}
+
+	std::cout << '\t' << this
+		<< '\t' << " Block: " << reinterpret_cast< std::size_t >( p )
+		<< '\t' << " Free Spot: " << reinterpret_cast< std::size_t >( f )
+		<< '\t' << " Free Bytes: " << freeBytes
+		<< '\t' << " Used Bytes: " << usedBytes
+		<< '\t' << " Counted Bytes: " << countedBytes
+		<< '\t' << " Chunk Count: " << chunkCount
+		<< '\t' << " Empty? " << empty
+		<< std::endl;
 }
 
 // #endif
