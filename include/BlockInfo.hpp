@@ -202,7 +202,7 @@ struct BlockInfo
 			const bool resetRecent = ( it == recent_ );
 			block.Destroy();
 			blocks_.erase( it );
-			if ( resetRecent )
+			if ( resetRecent || ( blocks_.size() == 0 ) )
 			{
 				recent_ = blocks_.end();
 			}
@@ -499,7 +499,7 @@ struct AnyPoolBlockInfo : BlockInfo< BlockType >
 			const bool resetRecent = ( it == BaseClass::recent_ );
 			block.Destroy();
 			BaseClass::blocks_.erase( it );
-			if ( resetRecent )
+			if ( resetRecent || ( BaseClass::blocks_.size() == 0 ) )
 			{
 				BaseClass::recent_ = BaseClass::blocks_.end();
 			}
@@ -573,6 +573,7 @@ struct TinyBlockPoolInfo : AnyPoolBlockInfo< BlockType >
 
 	void * Allocate( const void * hint )
 	{
+		assert( !IsCorrupt() );
 
 		BlocksIter end( BaseClass::blocks_.end() );
 		// Check hint first.
@@ -581,6 +582,7 @@ struct TinyBlockPoolInfo : AnyPoolBlockInfo< BlockType >
 			BlocksIter it = BaseClass::GetBlock( hint );
 			if ( it != end )
 			{
+				assert( BaseClass::blocks_.size() != 0 );
 				BlockType & block = *it;
 				void * p = block.Allocate( BaseClass::blockSize_ );
 				if ( nullptr != p )
@@ -594,6 +596,7 @@ struct TinyBlockPoolInfo : AnyPoolBlockInfo< BlockType >
 		// Check most recently used block next.
 		if ( BaseClass::recent_ != end )
 		{
+			assert( BaseClass::blocks_.size() != 0 );
 			BlockType & block = *( BaseClass::recent_ );
 			void * p = block.Allocate( BaseClass::objectSize_ );
 			if ( nullptr != p )
@@ -607,11 +610,13 @@ struct TinyBlockPoolInfo : AnyPoolBlockInfo< BlockType >
 		BlocksIter it( begin );
 		while ( it != end )
 		{
+			assert( BaseClass::blocks_.size() != 0 );
 			BlockType & block = *it;
 			void * p = block.Allocate( BaseClass::objectSize_ );
 			if ( nullptr != p )
 			{
 				BaseClass::recent_ = it;
+				assert( !IsCorrupt() );
 				return p;
 			}
 			++it;
@@ -621,32 +626,31 @@ struct TinyBlockPoolInfo : AnyPoolBlockInfo< BlockType >
 		const unsigned int objectsPerPool = BaseClass::blockSize_ / BaseClass::objectSize_;
 		BlockType block( BaseClass::blockSize_, BaseClass::objectSize_, BaseClass::alignment_, objectsPerPool );
 		void * p = block.Allocate( BaseClass::objectSize_ );
-		if ( nullptr == p )
-		{
-			block.Destroy();
-			return nullptr;
-		}
+		assert( nullptr != p );
 
 		it = std::lower_bound( begin, end, block );
 		BaseClass::recent_ = BaseClass::blocks_.insert( it, block );
+		assert( !IsCorrupt() );
 		return p;
 	}
 
 	bool Release( void * place )
 	{
+		assert( !IsCorrupt() );
 		// Programs often release chunks they recently allocated, so check recently used block first.
 		if ( BaseClass::recent_ != BaseClass::blocks_.end() )
 		{
 			BlockType & block = *( BaseClass::recent_ );
 			if ( block.HasAddress( place, BaseClass::blockSize_ ) )
 			{
-				block.Release( place, BaseClass::blockSize_ );
+				block.Release( place, BaseClass::objectSize_ );
 				if ( block.IsEmpty() )
 				{
 					block.Destroy();
 					BaseClass::blocks_.erase( BaseClass::recent_ );
 					BaseClass::recent_ = BaseClass::blocks_.end();
 				}
+				assert( !IsCorrupt() );
 				return true;
 			}
 		}
@@ -654,20 +658,22 @@ struct TinyBlockPoolInfo : AnyPoolBlockInfo< BlockType >
 		BlocksIter it( BaseClass::GetBlock( place ) );
 		if ( it == BaseClass::blocks_.end() )
 		{
+			assert( !IsCorrupt() );
 			return false;
 		}
 		BlockType & block = *it;
-		block.Release( place, BaseClass::blockSize_ );
+		block.Release( place, BaseClass::objectSize_ );
 		if ( block.IsEmpty() )
 		{
 			const bool resetRecent = ( it == BaseClass::recent_ );
 			block.Destroy();
 			BaseClass::blocks_.erase( it );
-			if ( resetRecent )
+			if ( resetRecent || ( BaseClass::blocks_.size() == 0 ) )
 			{
 				BaseClass::recent_ = BaseClass::blocks_.end();
 			}
 		}
+		assert( !IsCorrupt() );
 		return true;
 	}
 
@@ -678,6 +684,7 @@ struct TinyBlockPoolInfo : AnyPoolBlockInfo< BlockType >
 		for ( BlocksCIter it( BaseClass::blocks_.begin() ); it != end; ++it )
 		{
 			const BlockType & block = *it;
+			assert( !block.IsDestroyed() );
 			assert( !block.IsCorrupt( BaseClass::objectSize_ ) );
 		}
 		return false;
