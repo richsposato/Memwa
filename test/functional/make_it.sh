@@ -7,6 +7,7 @@ echo "Compile TestTinyBlock.cpp";   g++ -std=c++14 -Wall -I../../include -I../..
 echo "Compile TestPoolBlock.cpp";   g++ -std=c++14 -Wall -I../../include -I../../../Hestia/CppUnitTest/include -c TestPoolBlock.cpp -o TestPoolBlock.o
 echo "Compile TestStackBlock.cpp";  g++ -std=c++14 -Wall -I../../include -I../../../Hestia/CppUnitTest/include -c TestStackBlock.cpp -o TestStackBlock.o
 echo "Compile TestLinearBlock.cpp"; g++ -std=c++14 -Wall -I../../include -I../../../Hestia/CppUnitTest/include -c TestLinearBlock.cpp -o TestLinearBlock.o
+echo "Compile TestTinyAllocator.cpp"; g++ -std=c++14 -Wall -I../../include -I../../../Hestia/CppUnitTest/include -c TestTinyAllocator.cpp -o TestTinyAllocator.o
 echo "Compile CommandLineArgs.cpp"; g++ -std=c++14 -Wall -I../../include -I../../../Hestia/CppUnitTest/include -c CommandLineArgs.cpp -o CommandLineArgs.o
 
 echo "Linking"
@@ -18,6 +19,7 @@ g++ -std=c++14 -Wall -o functionality_test.exe \
 	TestStackBlock.o \
 	TestLinearBlock.o \
 	CommandLineArgs.o \
+	TestTinyAllocator.o \
 	../../src/obj/AllocatorManager.o \
 	../../src/obj/TinyBlock.o \
 	../../src/obj/PoolBlock.o \
