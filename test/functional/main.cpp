@@ -24,6 +24,8 @@ void TestStackBlockResize();
 void TestStackBlockComplex();
 void TestStackExceptions();
 
+void TestTinyAllocator( bool multithreaded );
+
 // ----------------------------------------------------------------------------
 
 void TestAllocatorManager()
@@ -39,9 +41,9 @@ void TestAllocatorManager()
 	allocatorInfo.objectSize = 8;
 	allocatorInfo.alignment = 4;
 
-	UNIT_TEST_WITH_MSG( u, !AllocatorManager::DestroyManager( true ), "Destruction should not pass since AllocatorManager does not exist." );
+	UNIT_TEST_WITH_MSG( u, !AllocatorManager::DestroyManager( true ), "Destruction should not pass since AllocatorManager does not exist yet." );
 
-	UNIT_TEST_WITH_MSG( u,  AllocatorManager::CreateManager( false, 4096 ), "Creation should pass since AllocatorManager does exist yet." );
+	UNIT_TEST_WITH_MSG( u,  AllocatorManager::CreateManager( false, 4096 ), "Creation should pass since AllocatorManager does exist." );
 	UNIT_TEST_WITH_MSG( u, !AllocatorManager::CreateManager( false, 4096 ), "Creation should fail since AllocatorManager already exists." );
 
 	UNIT_TEST_WITH_MSG( u, !AllocatorManager::TrimEmptyBlocks(), "TrimEmptyBlocks should work after calling CreateManager." );
@@ -153,99 +155,380 @@ void TestAllocatorManager()
 
 // ----------------------------------------------------------------------------
 
-void TestAllocatorManagerExceptions( bool multithreaded )
+void TestManagerExceptions( bool multithreaded )
 {
 
 	ut::UnitTestSet & uts = ut::UnitTestSet::GetIt();
 	ut::UnitTest * u = uts.AddUnitTest( "Test Manager Exceptions" );
-
-	AllocatorManager::AllocatorParameters allocatorInfo;
-	allocatorInfo.type = AllocatorManager::AllocatorType::Pool;
-	allocatorInfo.initialBlocks = 8;
-	allocatorInfo.blockSize = 4096;
-	allocatorInfo.objectSize = 8;
-	allocatorInfo.alignment = 4;
 
 	// Check if AllocatorManager won't allow calls to any functions before creating the manager.
 	// Not allowed to call TrimEmptyBlocks before calling CreateManager.
 	UNIT_TEST_FOR_EXCEPTION( u, !AllocatorManager::TrimEmptyBlocks(), std::logic_error );
 	// Not allowed to call DestroyAllocator before calling CreateManager.
 	UNIT_TEST_FOR_EXCEPTION( u, !AllocatorManager::DestroyAllocator( nullptr, false ), std::logic_error );
-	// Not allowed to call CreateAllocator before calling CreateManager.
-	UNIT_TEST_FOR_EXCEPTION( u, nullptr == AllocatorManager::CreateAllocator( allocatorInfo ), std::logic_error );
+	{
+		AllocatorManager::AllocatorParameters allocatorInfo;
+		allocatorInfo.type = AllocatorManager::AllocatorType::Pool;
+		allocatorInfo.initialBlocks = 8;
+		allocatorInfo.blockSize = 4000;
+		allocatorInfo.objectSize = 8;
+		allocatorInfo.alignment = 4;
+		// Not allowed to call CreateAllocator before calling CreateManager.
+		UNIT_TEST_FOR_EXCEPTION( u, nullptr == AllocatorManager::CreateAllocator( allocatorInfo ), std::logic_error );
+	}
 
-	UNIT_TEST_WITH_MSG( u,  AllocatorManager::CreateManager( multithreaded, 4096 ), "Creation should pass since AllocatorManager does exist yet." );
+	UNIT_TEST_WITH_MSG( u, AllocatorManager::CreateManager( multithreaded, 4096 ), "Creation should pass since AllocatorManager does exist." );
 
-	allocatorInfo.blockSize = 255;
-	// CreateAllocator should fail if blockSize is less than 256.
-	UNIT_TEST_FOR_EXCEPTION( u, nullptr == AllocatorManager::CreateAllocator( allocatorInfo ), std::invalid_argument );
+	{
+		AllocatorManager::AllocatorParameters allocatorInfo;
+		allocatorInfo.type = AllocatorManager::AllocatorType::Pool;
+		allocatorInfo.initialBlocks = 8;
+		allocatorInfo.blockSize = 255;
+		allocatorInfo.objectSize = 8;
+		allocatorInfo.alignment = 4;
+		// CreateAllocator should fail if blockSize is less than 256.
+		UNIT_TEST_FOR_EXCEPTION( u, nullptr == AllocatorManager::CreateAllocator( allocatorInfo ), std::invalid_argument );
+	}
 
-	allocatorInfo.blockSize = 256;
-	allocatorInfo.initialBlocks = 0;
-	// CreateAllocator should fail if block count is zero.
-	UNIT_TEST_FOR_EXCEPTION( u, nullptr == AllocatorManager::CreateAllocator( allocatorInfo ), std::invalid_argument );
+	{
+		AllocatorManager::AllocatorParameters allocatorInfo;
+		allocatorInfo.type = AllocatorManager::AllocatorType::Pool;
+		allocatorInfo.blockSize = 256;
+		allocatorInfo.objectSize = 8;
+		allocatorInfo.alignment = 4;
+		allocatorInfo.initialBlocks = 0;
+		// CreateAllocator should fail if block count is zero.
+		UNIT_TEST_FOR_EXCEPTION( u, nullptr == AllocatorManager::CreateAllocator( allocatorInfo ), std::invalid_argument );
+	}
 
-	allocatorInfo.initialBlocks = 1;
-	allocatorInfo.alignment = 0;
-	// CreateAllocator should fail if alignment is zero.
-	UNIT_TEST_FOR_EXCEPTION( u, nullptr == AllocatorManager::CreateAllocator( allocatorInfo ), std::invalid_argument );
+	{
+		AllocatorManager::AllocatorParameters allocatorInfo;
+		allocatorInfo.type = AllocatorManager::AllocatorType::Pool;
+		allocatorInfo.blockSize = 400;
+		allocatorInfo.objectSize = 8;
+		allocatorInfo.initialBlocks = 1;
+		allocatorInfo.alignment = 0;
+		// CreateAllocator should fail if alignment is zero.
+		UNIT_TEST_FOR_EXCEPTION( u, nullptr == AllocatorManager::CreateAllocator( allocatorInfo ), std::invalid_argument );
+	}
 
-	allocatorInfo.alignment = 64;
-	// CreateAllocator should fail if alignment is over 32.
-	UNIT_TEST_FOR_EXCEPTION( u, nullptr == AllocatorManager::CreateAllocator( allocatorInfo ), std::invalid_argument );
+	{
+		AllocatorManager::AllocatorParameters allocatorInfo;
+		allocatorInfo.type = AllocatorManager::AllocatorType::Pool;
+		allocatorInfo.blockSize = 256;
+		allocatorInfo.objectSize = 8;
+		allocatorInfo.initialBlocks = 1;
+		allocatorInfo.alignment = 64;
+		// CreateAllocator should fail if alignment is over 32.
+		UNIT_TEST_FOR_EXCEPTION( u, nullptr == AllocatorManager::CreateAllocator( allocatorInfo ), std::invalid_argument );
+	}
 
-	allocatorInfo.alignment = 3;
-	// CreateAllocator should fail if alignment is not a power of 2.
-	UNIT_TEST_FOR_EXCEPTION( u, nullptr == AllocatorManager::CreateAllocator( allocatorInfo ), std::invalid_argument );
+	{
+		AllocatorManager::AllocatorParameters allocatorInfo;
+		allocatorInfo.type = AllocatorManager::AllocatorType::Pool;
+		allocatorInfo.blockSize = 256;
+		allocatorInfo.objectSize = 8;
+		allocatorInfo.initialBlocks = 1;
+		allocatorInfo.alignment = 3;
+		// CreateAllocator should fail if alignment is not a power of 2.
+		UNIT_TEST_FOR_EXCEPTION( u, nullptr == AllocatorManager::CreateAllocator( allocatorInfo ), std::invalid_argument );
+	}
 
-	allocatorInfo.alignment = 16;
-	allocatorInfo.blockSize = 1000;
-	// CreateAllocator should fail if alignment is not block size is not a multiple of alignment.
-	UNIT_TEST_FOR_EXCEPTION( u, nullptr == AllocatorManager::CreateAllocator( allocatorInfo ), std::invalid_argument );
+	{
+		AllocatorManager::AllocatorParameters allocatorInfo;
+		allocatorInfo.type = AllocatorManager::AllocatorType::Pool;
+		allocatorInfo.alignment = 16;
+		allocatorInfo.blockSize = 300;
+		allocatorInfo.initialBlocks = 1;
+		allocatorInfo.objectSize = 8;
+		// CreateAllocator should fail if alignment is not block size is not a multiple of alignment.
+		UNIT_TEST_FOR_EXCEPTION( u, nullptr == AllocatorManager::CreateAllocator( allocatorInfo ), std::invalid_argument );
+	}
 
-	allocatorInfo.blockSize = 1024;
-	allocatorInfo.type = static_cast< AllocatorManager::AllocatorType >( 57 );
-	// CreateAllocator should fail if type is not valid.
-	UNIT_TEST_FOR_EXCEPTION( u, nullptr == AllocatorManager::CreateAllocator( allocatorInfo ), std::invalid_argument );
+	{
+		AllocatorManager::AllocatorParameters allocatorInfo;
+		allocatorInfo.type = AllocatorManager::AllocatorType::Pool;
+		allocatorInfo.blockSize = 1024;
+		allocatorInfo.objectSize = 8;
+		allocatorInfo.initialBlocks = 1;
+		allocatorInfo.alignment = 8;
+		allocatorInfo.type = static_cast< AllocatorManager::AllocatorType >( 57 );
+		// CreateAllocator should fail if type is not valid.
+		UNIT_TEST_FOR_EXCEPTION( u, nullptr == AllocatorManager::CreateAllocator( allocatorInfo ), std::invalid_argument );
+	}
 
-	allocatorInfo.type = AllocatorManager::AllocatorType::Linear;
-	allocatorInfo.blockSize = 30;
-	allocatorInfo.alignment = 32;
-	// CreateAllocator should fail if blockSize is smaller than alignment.
-	UNIT_TEST_FOR_EXCEPTION( u, nullptr == AllocatorManager::CreateAllocator( allocatorInfo ), std::invalid_argument );
+	{
+		AllocatorManager::AllocatorParameters allocatorInfo;
+		allocatorInfo.type = AllocatorManager::AllocatorType::Pool;
+		allocatorInfo.initialBlocks = 8;
+		allocatorInfo.blockSize = 255;
+		allocatorInfo.objectSize = sizeof(void *) - 1;
+		allocatorInfo.alignment = 4;
+		// CreateAllocator should fail if object size < sizeof(void *).
+		UNIT_TEST_FOR_EXCEPTION( u, nullptr == AllocatorManager::CreateAllocator( allocatorInfo ), std::invalid_argument );
+	}
+
+	{
+		AllocatorManager::AllocatorParameters allocatorInfo;
+		allocatorInfo.type = AllocatorManager::AllocatorType::Linear;
+		allocatorInfo.blockSize = 30;
+		allocatorInfo.alignment = 32;
+		allocatorInfo.objectSize = 8;
+		allocatorInfo.initialBlocks = 1;
+		// CreateAllocator should fail if blockSize is smaller than alignment.
+		UNIT_TEST_FOR_EXCEPTION( u, nullptr == AllocatorManager::CreateAllocator( allocatorInfo ), std::invalid_argument );
+	}
 
 	// Test for exceptions for Pool allocator.
+	{
+		AllocatorManager::AllocatorParameters allocatorInfo;
+		allocatorInfo.type = AllocatorManager::AllocatorType::Pool;
+		allocatorInfo.objectSize = 100;
+		allocatorInfo.blockSize = 4096;
+		allocatorInfo.alignment = 16;
+		allocatorInfo.initialBlocks = 1;
+		// CreateAllocator should fail since blockSize is not a multiple of objectSize.
+		UNIT_TEST_FOR_EXCEPTION( u, ( AllocatorManager::CreateAllocator( allocatorInfo ) == nullptr ), std::invalid_argument );
+	}
 
-	allocatorInfo.type = AllocatorManager::AllocatorType::Pool;
-	allocatorInfo.objectSize = 100;
-	allocatorInfo.blockSize = 4096;
-	allocatorInfo.alignment = 16;
-	// CreateAllocator should fail since blockSize is not a multiple of objectSize.
-	UNIT_TEST_FOR_EXCEPTION( u, ( AllocatorManager::CreateAllocator( allocatorInfo ) == nullptr ), std::invalid_argument );
+	{
+		AllocatorManager::AllocatorParameters allocatorInfo;
+		allocatorInfo.type = AllocatorManager::AllocatorType::Pool;
+		allocatorInfo.objectSize = 2;
+		allocatorInfo.alignment = 2;
+		allocatorInfo.blockSize = 4096;
+		allocatorInfo.initialBlocks = 1;
+		UNIT_TEST_FOR_EXCEPTION( u, ( AllocatorManager::CreateAllocator( allocatorInfo ) == nullptr ), std::invalid_argument );
+	}
 
-	allocatorInfo.type = AllocatorManager::AllocatorType::Pool;
-	allocatorInfo.objectSize = 2;
-	allocatorInfo.alignment = 2;
-	allocatorInfo.blockSize = 4096;
-	UNIT_TEST_FOR_EXCEPTION( u, ( AllocatorManager::CreateAllocator( allocatorInfo ) == nullptr ), std::invalid_argument );
+	{
+		AllocatorManager::AllocatorParameters allocatorInfo;
+		allocatorInfo.type = AllocatorManager::AllocatorType::Pool;
+		allocatorInfo.objectSize = 1;
+		allocatorInfo.alignment = 1;
+		allocatorInfo.blockSize = 4096;
+		allocatorInfo.initialBlocks = 1;
+		UNIT_TEST_FOR_EXCEPTION( u, ( AllocatorManager::CreateAllocator( allocatorInfo ) == nullptr ), std::invalid_argument );
+	}
 
-	allocatorInfo.type = AllocatorManager::AllocatorType::Pool;
-	allocatorInfo.objectSize = 1;
-	allocatorInfo.alignment = 1;
-	allocatorInfo.blockSize = 4096;
-	UNIT_TEST_FOR_EXCEPTION( u, ( AllocatorManager::CreateAllocator( allocatorInfo ) == nullptr ), std::invalid_argument );
+	{
+		AllocatorManager::AllocatorParameters allocatorInfo;
+		allocatorInfo.type = AllocatorManager::AllocatorType::Pool;
+		allocatorInfo.objectSize = 4;
+		allocatorInfo.alignment = 2;
+		allocatorInfo.blockSize = 1024;
+		allocatorInfo.initialBlocks = 1;
+		// CreateAllocator should fail since alignment is too small.
+		UNIT_TEST_FOR_EXCEPTION( u, ( AllocatorManager::CreateAllocator( allocatorInfo ) == nullptr ), std::invalid_argument );
+	}
 
-	allocatorInfo.type = AllocatorManager::AllocatorType::Pool;
-	allocatorInfo.objectSize = 4;
-	allocatorInfo.alignment = 2;
-	// CreateAllocator should fail since alignment is too small.
-	UNIT_TEST_FOR_EXCEPTION( u, ( AllocatorManager::CreateAllocator( allocatorInfo ) == nullptr ), std::invalid_argument );
+	{
+		AllocatorManager::AllocatorParameters allocatorInfo;
+		allocatorInfo.type = AllocatorManager::AllocatorType::Pool;
+		allocatorInfo.objectSize = 4;
+		allocatorInfo.alignment = 1;
+		allocatorInfo.blockSize = 1024;
+		allocatorInfo.initialBlocks = 1;
+		// CreateAllocator should fail since alignment is too small.
+		UNIT_TEST_FOR_EXCEPTION( u, ( AllocatorManager::CreateAllocator( allocatorInfo ) == nullptr ), std::invalid_argument );
+	}
 
-	allocatorInfo.type = AllocatorManager::AllocatorType::Pool;
-	allocatorInfo.objectSize = 4;
-	allocatorInfo.alignment = 1;
-	// CreateAllocator should fail since alignment is too small.
-	UNIT_TEST_FOR_EXCEPTION( u, ( AllocatorManager::CreateAllocator( allocatorInfo ) == nullptr ), std::invalid_argument );
+	UNIT_TEST_WITH_MSG( u, AllocatorManager::DestroyManager( true ), "Destruction should pass since AllocatorManager exists." );
+}
+
+// ----------------------------------------------------------------------------
+
+void TestAllocatorExceptions( bool multithreaded )
+{
+
+	ut::UnitTestSet & uts = ut::UnitTestSet::GetIt();
+	ut::UnitTest * u = uts.AddUnitTest( "Allocator Exceptions" );
+
+	UNIT_TEST_WITH_MSG( u, AllocatorManager::CreateManager( multithreaded, 4096 ), "Creation should pass since AllocatorManager does exist." );
+
+	{
+		AllocatorManager::AllocatorParameters allocatorInfo;
+		allocatorInfo.type = AllocatorManager::AllocatorType::Linear;
+		allocatorInfo.objectSize = 4;
+		allocatorInfo.alignment = 8;
+		allocatorInfo.blockSize = 1024;
+		allocatorInfo.initialBlocks = 1;
+		Allocator * allocator = nullptr;
+		void * place = nullptr;
+		UNIT_TEST_WITH_MSG( u, ( allocator = AllocatorManager::CreateAllocator( allocatorInfo ) ) != nullptr, "allocator should not be nullptr." );
+		UNIT_TEST_FOR_EXCEPTION_WITH_MSG( u, ( place = allocator->Allocate( allocatorInfo.blockSize + 1 ) ), std::invalid_argument, "Should throw since requested size is larger than block size." );
+		UNIT_TEST( u, ( place == nullptr ) );
+		UNIT_TEST_WITH_MSG( u, AllocatorManager::DestroyAllocator( allocator, true ), "DestroyAllocator should pass since parameter is valid." );
+	}
+
+	{
+		AllocatorManager::AllocatorParameters allocatorInfo;
+		allocatorInfo.type = AllocatorManager::AllocatorType::Linear;
+		allocatorInfo.objectSize = 4;
+		allocatorInfo.alignment = 8;
+		allocatorInfo.blockSize = 1024;
+		allocatorInfo.initialBlocks = 1;
+		Allocator * allocator = nullptr;
+		void * place = nullptr;
+		void * hint = nullptr;
+		UNIT_TEST_WITH_MSG( u, ( allocator = AllocatorManager::CreateAllocator( allocatorInfo ) ) != nullptr, "allocator should not be nullptr." );
+		UNIT_TEST_FOR_EXCEPTION_WITH_MSG( u, ( place = allocator->Allocate( allocatorInfo.blockSize + 1, hint ) ), std::invalid_argument, "Should throw since requested size is larger than block size." );
+		UNIT_TEST( u, ( place == nullptr ) );
+		UNIT_TEST_FOR_EXCEPTION_WITH_MSG( u, allocator->Resize( place, allocatorInfo.objectSize, allocatorInfo.blockSize ), std::logic_error, "Should throw since tiny allocator does not allow resize." );
+		UNIT_TEST_FOR_EXCEPTION_WITH_MSG( u, allocator->Resize( place, allocatorInfo.objectSize, allocatorInfo.blockSize, allocatorInfo.alignment ), std::logic_error, "Should throw since tiny allocator does not allow resize." );
+		UNIT_TEST_WITH_MSG( u, AllocatorManager::DestroyAllocator( allocator, true ), "DestroyAllocator should pass since parameter is valid." );
+	}
+
+	{
+		AllocatorManager::AllocatorParameters allocatorInfo;
+		allocatorInfo.type = AllocatorManager::AllocatorType::Linear;
+		allocatorInfo.objectSize = 4;
+		allocatorInfo.alignment = 8;
+		allocatorInfo.blockSize = 1024;
+		allocatorInfo.initialBlocks = 1;
+		Allocator * allocator = nullptr;
+		void * place = nullptr;
+		std::size_t alignment = allocatorInfo.alignment * 2;
+		UNIT_TEST_WITH_MSG( u, ( allocator = AllocatorManager::CreateAllocator( allocatorInfo ) ) != nullptr, "allocator should not be nullptr." );
+		UNIT_TEST_FOR_EXCEPTION_WITH_MSG( u, ( place = allocator->Allocate( allocatorInfo.blockSize, alignment ) ), std::invalid_argument, "Should throw since requested alignment is larger than block alignment." );
+		UNIT_TEST( u, ( place == nullptr ) );
+		UNIT_TEST_WITH_MSG( u, AllocatorManager::DestroyAllocator( allocator, true ), "DestroyAllocator should pass since parameter is valid." );
+	}
+
+	{
+		AllocatorManager::AllocatorParameters allocatorInfo;
+		allocatorInfo.type = AllocatorManager::AllocatorType::Pool;
+		allocatorInfo.objectSize = 64;
+		allocatorInfo.alignment = 8;
+		allocatorInfo.blockSize = 1024;
+		allocatorInfo.initialBlocks = 1;
+		Allocator * allocator = nullptr;
+		void * place = nullptr;
+		std::size_t requestedSize = allocatorInfo.objectSize + allocatorInfo.alignment;
+		UNIT_TEST_WITH_MSG( u, ( allocator = AllocatorManager::CreateAllocator( allocatorInfo ) ) != nullptr, "allocator should not be nullptr." );
+		UNIT_TEST_FOR_EXCEPTION_WITH_MSG( u, ( place = allocator->Allocate( requestedSize ) ), std::invalid_argument, "Should throw since requested size is larger than block's object size." );
+		UNIT_TEST( u, ( place == nullptr ) );
+		UNIT_TEST_WITH_MSG( u, AllocatorManager::DestroyAllocator( allocator, true ), "DestroyAllocator should pass since parameter is valid." );
+	}
+
+	{
+		AllocatorManager::AllocatorParameters allocatorInfo;
+		allocatorInfo.type = AllocatorManager::AllocatorType::Pool;
+		allocatorInfo.objectSize = 64;
+		allocatorInfo.alignment = 8;
+		allocatorInfo.blockSize = 1024;
+		allocatorInfo.initialBlocks = 1;
+		Allocator * allocator = nullptr;
+		void * place = nullptr;
+		std::size_t alignment = allocatorInfo.alignment * 2;
+		UNIT_TEST_WITH_MSG( u, ( allocator = AllocatorManager::CreateAllocator( allocatorInfo ) ) != nullptr, "allocator should not be nullptr." );
+		UNIT_TEST_FOR_EXCEPTION_WITH_MSG( u, ( place = allocator->Allocate( allocatorInfo.blockSize, alignment ) ), std::invalid_argument, "Should throw since requested alignment is larger than block alignment." );
+		UNIT_TEST( u, ( place == nullptr ) );
+		UNIT_TEST_WITH_MSG( u, AllocatorManager::DestroyAllocator( allocator, true ), "DestroyAllocator should pass since parameter is valid." );
+	}
+
+	{
+		AllocatorManager::AllocatorParameters allocatorInfo;
+		allocatorInfo.type = AllocatorManager::AllocatorType::Pool;
+		allocatorInfo.objectSize = 64;
+		allocatorInfo.alignment = 8;
+		allocatorInfo.blockSize = 1024;
+		allocatorInfo.initialBlocks = 1;
+		Allocator * allocator = nullptr;
+		void * place = nullptr;
+		std::size_t badAlignment = allocatorInfo.alignment * 2;
+		UNIT_TEST_WITH_MSG( u, ( allocator = AllocatorManager::CreateAllocator( allocatorInfo ) ) != nullptr, "allocator should not be nullptr." );
+		UNIT_TEST( u, ( place = allocator->Allocate( allocatorInfo.objectSize ) ) );
+		UNIT_TEST( u, ( place != nullptr ) );
+		UNIT_TEST_FOR_EXCEPTION_WITH_MSG( u, allocator->Release( place, allocatorInfo.objectSize + allocatorInfo.alignment ), std::invalid_argument, "Should throw since requested size is larger than block's object size." );
+		UNIT_TEST_FOR_EXCEPTION_WITH_MSG( u, allocator->Release( place, allocatorInfo.objectSize - allocatorInfo.alignment ), std::invalid_argument, "Should throw since requested size is smaller than block's object size." );
+		UNIT_TEST_FOR_EXCEPTION_WITH_MSG( u, allocator->Release( place, allocatorInfo.objectSize, badAlignment ), std::invalid_argument, "Should throw since requested alignment is larger than block's alignment." );
+		UNIT_TEST_FOR_EXCEPTION_WITH_MSG( u, allocator->Release( place, allocatorInfo.objectSize + allocatorInfo.alignment, allocatorInfo.alignment ), std::invalid_argument, "Should throw since requested size is larger than block's object size." );
+		UNIT_TEST_FOR_EXCEPTION_WITH_MSG( u, allocator->Release( place, allocatorInfo.objectSize - allocatorInfo.alignment, allocatorInfo.alignment ), std::invalid_argument, "Should throw since requested size is smaller than block's object size." );
+		UNIT_TEST_FOR_EXCEPTION_WITH_MSG( u, allocator->Resize( place, allocatorInfo.objectSize, allocatorInfo.blockSize ), std::logic_error, "Should throw since tiny allocator does not allow resize." );
+		UNIT_TEST_FOR_EXCEPTION_WITH_MSG( u, allocator->Resize( place, allocatorInfo.objectSize, allocatorInfo.blockSize, allocatorInfo.alignment ), std::logic_error, "Should throw since tiny allocator does not allow resize." );
+		UNIT_TEST( u, allocator->Release( place, allocatorInfo.objectSize ) );
+		UNIT_TEST_WITH_MSG( u, AllocatorManager::DestroyAllocator( allocator, true ), "DestroyAllocator should pass since parameter is valid." );
+	}
+
+	{
+		AllocatorManager::AllocatorParameters allocatorInfo;
+		allocatorInfo.type = AllocatorManager::AllocatorType::Stack;
+		allocatorInfo.objectSize = 64;
+		allocatorInfo.alignment = 8;
+		allocatorInfo.blockSize = 1024;
+		allocatorInfo.initialBlocks = 1;
+		Allocator * allocator = nullptr;
+		void * place = nullptr;
+		std::size_t requestedSize = allocatorInfo.blockSize + allocatorInfo.alignment;
+		UNIT_TEST_WITH_MSG( u, ( allocator = AllocatorManager::CreateAllocator( allocatorInfo ) ) != nullptr, "allocator should not be nullptr." );
+		UNIT_TEST_FOR_EXCEPTION_WITH_MSG( u, ( place = allocator->Allocate( requestedSize ) ), std::invalid_argument, "Should throw since requested size is larger than block's object size." );
+		UNIT_TEST( u, ( place == nullptr ) );
+		UNIT_TEST_WITH_MSG( u, AllocatorManager::DestroyAllocator( allocator, true ), "DestroyAllocator should pass since parameter is valid." );
+	}
+
+	{
+		AllocatorManager::AllocatorParameters allocatorInfo;
+		allocatorInfo.type = AllocatorManager::AllocatorType::Stack;
+		allocatorInfo.objectSize = 64;
+		allocatorInfo.alignment = 8;
+		allocatorInfo.blockSize = 1024;
+		allocatorInfo.initialBlocks = 1;
+		Allocator * allocator = nullptr;
+		void * place = nullptr;
+		std::size_t badAlignment = allocatorInfo.alignment * 2;
+		UNIT_TEST_WITH_MSG( u, ( allocator = AllocatorManager::CreateAllocator( allocatorInfo ) ) != nullptr, "allocator should not be nullptr." );
+		UNIT_TEST_FOR_EXCEPTION_WITH_MSG( u, ( place = allocator->Allocate( allocatorInfo.objectSize, badAlignment ) ), std::invalid_argument, "Should throw since requested alignment is larger than block's alignment." );
+		UNIT_TEST( u, ( place == nullptr ) );
+		UNIT_TEST_WITH_MSG( u, AllocatorManager::DestroyAllocator( allocator, true ), "DestroyAllocator should pass since parameter is valid." );
+	}
+
+	{
+		AllocatorManager::AllocatorParameters allocatorInfo;
+		allocatorInfo.type = AllocatorManager::AllocatorType::Stack;
+		allocatorInfo.objectSize = 64;
+		allocatorInfo.alignment = 8;
+		allocatorInfo.blockSize = 1024;
+		allocatorInfo.initialBlocks = 1;
+		Allocator * allocator = nullptr;
+		void * place = nullptr;
+		std::size_t badAlignment = allocatorInfo.alignment * 2;
+		UNIT_TEST_WITH_MSG( u, ( allocator = AllocatorManager::CreateAllocator( allocatorInfo ) ) != nullptr, "allocator should not be nullptr." );
+		UNIT_TEST( u, ( place = allocator->Allocate( allocatorInfo.objectSize ) ) );
+		UNIT_TEST( u, ( place != nullptr ) );
+		UNIT_TEST_FOR_EXCEPTION_WITH_MSG( u, allocator->Release( place, allocatorInfo.objectSize, badAlignment ), std::invalid_argument, "Should throw since requested alignment is larger than block's alignment." );
+		UNIT_TEST_FOR_EXCEPTION_WITH_MSG( u, allocator->Resize( place, allocatorInfo.objectSize, allocatorInfo.objectSize + allocatorInfo.alignment, badAlignment ), std::invalid_argument, "Should throw since requested alignment is larger than block's alignment." );
+		UNIT_TEST_FOR_EXCEPTION_WITH_MSG( u, allocator->Resize( nullptr, allocatorInfo.objectSize, allocatorInfo.blockSize + allocatorInfo.alignment ), std::invalid_argument, "Should throw since pointer is null." );
+		UNIT_TEST_FOR_EXCEPTION_WITH_MSG( u, allocator->Resize( place, allocatorInfo.objectSize, allocatorInfo.objectSize + allocatorInfo.alignment, badAlignment ), std::invalid_argument, "Should throw since requested alignment is larger than block's alignment." );
+		UNIT_TEST( u, allocator->Release( place, allocatorInfo.objectSize ) );
+		UNIT_TEST_WITH_MSG( u, AllocatorManager::DestroyAllocator( allocator, true ), "DestroyAllocator should pass since parameter is valid." );
+	}
+
+	{
+		AllocatorManager::AllocatorParameters allocatorInfo;
+		allocatorInfo.type = AllocatorManager::AllocatorType::Tiny;
+		allocatorInfo.objectSize = 16;
+		allocatorInfo.alignment = 8;
+		allocatorInfo.blockSize = 1024;
+		allocatorInfo.initialBlocks = 1;
+		Allocator * allocator = nullptr;
+		void * place = nullptr;
+		std::size_t badAlignment = allocatorInfo.alignment * 2;
+		UNIT_TEST_WITH_MSG( u, ( allocator = AllocatorManager::CreateAllocator( allocatorInfo ) ) != nullptr, "allocator should not be nullptr." );
+		UNIT_TEST_FOR_EXCEPTION_WITH_MSG( u, ( place = allocator->Allocate( allocatorInfo.objectSize + 1 ) ), std::invalid_argument, "Should throw since requested size is larger than block's object size." );
+		UNIT_TEST_FOR_EXCEPTION_WITH_MSG( u, ( place = allocator->Allocate( allocatorInfo.objectSize, badAlignment ) ), std::invalid_argument, "Should throw since requested alignment is larger than block's alignment." );
+		UNIT_TEST( u, ( place == nullptr ) );
+		UNIT_TEST( u, ( place = allocator->Allocate( allocatorInfo.objectSize ) ) );
+		UNIT_TEST( u, ( place != nullptr ) );
+		UNIT_TEST_FOR_EXCEPTION_WITH_MSG( u, allocator->Release( place, allocatorInfo.objectSize + 1 ), std::invalid_argument, "Should throw since provided size is larger than block's object size." );
+		UNIT_TEST_FOR_EXCEPTION_WITH_MSG( u, allocator->Release( place, allocatorInfo.objectSize, badAlignment ), std::invalid_argument, "Should throw since requested alignment is larger than block's alignment." );
+		UNIT_TEST_FOR_EXCEPTION_WITH_MSG( u, allocator->Release( place, allocatorInfo.objectSize + allocatorInfo.alignment, allocatorInfo.alignment ), std::invalid_argument, "Should throw since requested size is larger than block's object size." );
+		UNIT_TEST_FOR_EXCEPTION_WITH_MSG( u, allocator->Release( place, allocatorInfo.objectSize - allocatorInfo.alignment, allocatorInfo.alignment ), std::invalid_argument, "Should throw since requested size is smaller than block's object size." );
+		UNIT_TEST_FOR_EXCEPTION_WITH_MSG( u, allocator->Resize( place, allocatorInfo.objectSize, allocatorInfo.blockSize ), std::logic_error, "Should throw since tiny allocator does not allow resize." );
+		UNIT_TEST_FOR_EXCEPTION_WITH_MSG( u, allocator->Resize( place, allocatorInfo.objectSize, allocatorInfo.blockSize, allocatorInfo.alignment ), std::logic_error, "Should throw since tiny allocator does not allow resize." );
+		UNIT_TEST( u, allocator->Release( place, allocatorInfo.objectSize ) );
+		UNIT_TEST_WITH_MSG( u, AllocatorManager::DestroyAllocator( allocator, true ), "DestroyAllocator should pass since parameter is valid." );
+	}
 
 	UNIT_TEST_WITH_MSG( u, AllocatorManager::DestroyManager( true ), "Destruction should pass since AllocatorManager exists." );
 }
@@ -254,11 +537,14 @@ void TestAllocatorManagerExceptions( bool multithreaded )
 
 void TestAlignment( bool multithreaded )
 {
+	// These tests check if address returned by allocator is on an alignment boundary.
+	// It means the address returned by an allocator is a multiple of alignment.
+
 	ut::UnitTestSet & uts = ut::UnitTestSet::GetIt();
 	ut::UnitTest * u = uts.AddUnitTest( "Test Alignment" );
 
 	AllocatorManager::AllocatorParameters allocatorInfo;
-	UNIT_TEST_WITH_MSG( u,  AllocatorManager::CreateManager( multithreaded, 4096 ), "Creation should pass since AllocatorManager does exist yet." );
+	UNIT_TEST_WITH_MSG( u,  AllocatorManager::CreateManager( multithreaded, 4096 ), "Creation should pass since AllocatorManager does exist." );
 
 	void * place = nullptr;
 	std::size_t address = 0;
@@ -541,6 +827,7 @@ int main( int argc, const char * const argv[] )
 	}
 
 	std::srand( std::time( 0 ) );
+
 	TestLinearBlock();
 	TestStackBlock();
 	TestStackBlockResize();
@@ -548,11 +835,17 @@ int main( int argc, const char * const argv[] )
 	TestStackExceptions();
 	TestPoolBlock();
 	TestTinyBlock();
+
 	TestAllocatorManager();
-	TestAllocatorManagerExceptions( false );
-	TestAllocatorManagerExceptions( true );
+	TestManagerExceptions( false );
+	TestManagerExceptions( true );
+	TestAllocatorExceptions( false );
+	TestAllocatorExceptions( true );
 	TestAlignment( false );
 	TestAlignment( true );
+
+	TestTinyAllocator( false );
+	TestTinyAllocator( true );
 
 	if ( args.DoMakeTableAtExitTime() )
 	{
