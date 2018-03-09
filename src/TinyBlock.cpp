@@ -24,7 +24,9 @@ TinyBlock::TinyBlock( std::size_t blockSize, std::size_t objectSize, std::size_t
         << "   objectsPerPool: " << objectsPerPool
         << "   objectSize: " << objectSize << std::endl;
 */
+    assert( nullptr != block_ );
     assert( blockSize == UCHAR_MAX * objectSize );
+    assert( objectSize <= TinyBlock::MaxObjectSize );
     if ( nullptr == block_ )
     {
         throw std::bad_alloc();
@@ -36,6 +38,7 @@ TinyBlock::TinyBlock( std::size_t blockSize, std::size_t objectSize, std::size_t
     {
         *place = ++i;
     }
+    assert( IsValid() );
 //    std::cout << __FUNCTION__ << " : " << __LINE__ << std::endl;
 }
 
@@ -47,6 +50,8 @@ TinyBlock::TinyBlock( std::size_t objectSize ) :
     freeSpotCount_( UCHAR_MAX )
 {
 //    std::cout << __FUNCTION__ << " : " << __LINE__ << std::endl;
+    assert( nullptr != block_ );
+    assert( objectSize <= TinyBlock::MaxObjectSize );
     if ( nullptr == block_ )
     {
         throw std::bad_alloc();
@@ -56,12 +61,15 @@ TinyBlock::TinyBlock( std::size_t objectSize ) :
     {
         *place = ++i;
     }
+    assert( IsValid() );
 }
 
 // ----------------------------------------------------------------------------
 
 void TinyBlock::Destroy()
 {
+    assert( IsValid() );
+    assert( nullptr != block_ );
     ::free( static_cast< void * >( block_ ) );
     block_ = nullptr;
     freeSpot_ = 0;
@@ -72,13 +80,17 @@ void TinyBlock::Destroy()
 
 void * TinyBlock::Allocate( std::size_t objectSize )
 {
+    assert( IsValid() );
+    assert( nullptr != block_ );
+    assert( objectSize <= TinyBlock::MaxObjectSize );
     if ( IsFull() )
     {
         return nullptr;
     }
 
     assert( ( freeSpot_ * objectSize ) / objectSize == freeSpot_ );
-    unsigned char * pResult = block_ + ( freeSpot_ * objectSize );
+    const std::size_t offset = freeSpot_ * objectSize;
+    unsigned char * pResult = block_ + offset;
     freeSpot_ = *pResult;
     --freeSpotCount_;
 
@@ -89,6 +101,10 @@ void * TinyBlock::Allocate( std::size_t objectSize )
 
 void TinyBlock::Release( void * place, std::size_t objectSize )
 {
+    assert( IsValid() );
+    assert( nullptr != block_ );
+    assert( objectSize <= TinyBlock::MaxObjectSize );
+    assert( nullptr != place );
     unsigned char * toRelease = static_cast< unsigned char * >( place );
     assert( toRelease >= block_ );
     const std::size_t offset = static_cast< std::size_t >( toRelease - block_ );
@@ -100,6 +116,7 @@ void TinyBlock::Release( void * place, std::size_t objectSize )
 */
     // Alignment check
     assert( offset % objectSize == 0 );
+    assert( offset / objectSize <= UCHAR_MAX );
     unsigned char index = static_cast< unsigned char >( offset / objectSize );
 
 #if defined(DEBUG) || defined(_DEBUG)
@@ -124,14 +141,31 @@ void TinyBlock::Release( void * place, std::size_t objectSize )
 
 bool TinyBlock::IsBelowAddress( const void * place, std::size_t poolSize ) const
 {
+    assert( IsValid() );
     const bool below = ( block_ + poolSize <= place );
     return below;
 }
 
 // ----------------------------------------------------------------------------
 
+bool TinyBlock::IsValid() const
+{
+    assert( nullptr != this );
+    if ( nullptr == block_ )
+    {
+        assert( freeSpot_ == 0 );
+        assert( freeSpotCount_ == UCHAR_MAX );
+    }
+    return true;
+}
+
+// ----------------------------------------------------------------------------
+
 bool TinyBlock::IsCorrupt( std::size_t objectSize ) const
 {
+    assert( IsValid() );
+    assert( objectSize <= TinyBlock::MaxObjectSize );
+    assert( nullptr != block_ );
     if ( IsFull() )
     {
         // Useless to do further corruption checks if all blocks allocated.

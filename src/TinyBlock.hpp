@@ -46,6 +46,8 @@ class TinyBlock
 {
 public:
 
+    static const std::size_t MaxObjectSize = UCHAR_MAX;
+
     /** Initializes a TinyBlock.
      @param objectSize Number of bytes per object.
      */
@@ -80,6 +82,8 @@ public:
      */
     bool IsCorrupt( std::size_t objectSize ) const;
 
+    bool IsValid() const;
+
     /// Returns true if block at address P is inside this TinyBlock.
     bool HasAddress( const void * place, std::size_t blockSize ) const
     {
@@ -87,11 +91,16 @@ public:
         return ( block_ <= here ) && ( here < block_ + blockSize );
     }
 
-    bool IsBelowAddress( const void * place, std::size_t poolSize ) const;
+    bool IsBelowAddress( const void * place, std::size_t blockSize ) const;
 
     bool operator < ( const TinyBlock & that ) const
     {
         return ( block_ < that.block_ );
+    }
+
+    bool IsDestroyed() const
+    {
+        return ( nullptr == block_ );
     }
 
     bool IsEmpty() const
