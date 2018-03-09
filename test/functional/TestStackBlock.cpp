@@ -382,7 +382,7 @@ void TestStackBlockComplex( ut::UnitTest * u, const std::size_t blockSize, const
 	unsigned int objectCount = block.GetObjectCount( blockSize, alignment );
 	UNIT_TEST( u, objectCount == 0 );
 
-	ChunkList chunks( 100 );
+	SizedChunkList chunks( 100 );
 	ChunkInfo * chunk = nullptr;
 	std::size_t objectSize = 0;
 
@@ -460,7 +460,7 @@ void TestStackBlockComplex( ut::UnitTest * u, const std::size_t blockSize, const
 */
 			UNIT_TEST( u, freeByteCountBeforeResize < freeByteCountAfterResize );
 			chunk = nullptr;
-			chunks.RemoveChunk();
+			chunks.RemoveTopChunk();
 			objectCount = block.GetObjectCount( blockSize, alignment );
 		}
 		else if ( chunk == nullptr )
