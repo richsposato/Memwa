@@ -6,6 +6,7 @@
 #include "StackAllocator.hpp"
 #include "PoolAllocator.hpp"
 #include "TinyObjectAllocator.hpp"
+#include "TinyBlock.hpp"
 
 #include <cassert>
 #include <cstdlib>
@@ -342,10 +343,6 @@ void CheckInitializationParameters( const AllocatorManager::AllocatorParameters 
 	}
 	if ( info.type != AllocatorManager::AllocatorType::Tiny )
 	{
-		if ( info.blockSize <= info.alignment )
-		{
-			throw std::invalid_argument( "Memory block size should be bigger than alignment." );
-		}
 		if ( info.blockSize < 255 )
 		{
 			throw std::invalid_argument( "Memory block size should be bigger than 255 bytes." );
@@ -494,7 +491,7 @@ Allocator * AllocatorManager::CreateAllocator( const AllocatorParameters & info 
 				if ( info.alignment < 4 )
 				{
 					throw std::invalid_argument(
-						"ThreadSafePoolAllocator should not be used alignment smaller than 4 bytes. Use ThreadSafeTinyObjectAllocator instead." );
+						"ThreadSafePoolAllocator should not be used if alignment is smaller than 4 bytes. Use ThreadSafeTinyObjectAllocator instead." );
 				}
 				void * place = impl->Allocate( sizeof(ThreadSafePoolAllocator) + sizeof(void *) );
 				allocator = new ( place ) ThreadSafePoolAllocator( info.initialBlocks, info.blockSize, alignedSize, info.alignment );
@@ -508,6 +505,11 @@ Allocator * AllocatorManager::CreateAllocator( const AllocatorParameters & info 
 			}
 			case AllocatorType::Tiny :
 			{
+				if ( alignedSize > TinyBlock::MaxObjectSize )
+				{
+					throw std::invalid_argument(
+						"ThreadSafeTinyObjectAllocator should not be used if objectSize is greater than 256 bytes. Use ThreadSafePoolAllocator instead." );
+				}
 				void * place = impl->Allocate( sizeof(ThreadSafeTinyObjectAllocator) + sizeof(void *) );
 				allocator = new ( place ) ThreadSafeTinyObjectAllocator( info.initialBlocks, alignedSize, info.alignment );
 				break;
@@ -542,7 +544,7 @@ Allocator * AllocatorManager::CreateAllocator( const AllocatorParameters & info 
 				if ( info.alignment < 4 )
 				{
 					throw std::invalid_argument(
-						"PoolAllocator should not be used alignment smaller than 4 bytes. Use TinyObjectAllocator instead." );
+						"PoolAllocator should not be used if alignment is smaller than 4 bytes. Use TinyObjectAllocator instead." );
 				}
 				void * place = impl->Allocate( sizeof(PoolAllocator) + sizeof(void *) );
 				allocator = new ( place ) PoolAllocator( info.initialBlocks, info.blockSize, alignedSize, info.alignment );
@@ -556,6 +558,11 @@ Allocator * AllocatorManager::CreateAllocator( const AllocatorParameters & info 
 			}
 			case AllocatorType::Tiny :
 			{
+				if ( alignedSize > TinyBlock::MaxObjectSize )
+				{
+					throw std::invalid_argument(
+						"TinyObjectAllocator should not be used if objectSize is greater than 256 bytes. Use PoolAllocator instead." );
+				}
 				void * place = impl->Allocate( sizeof(TinyObjectAllocator) + sizeof(void *) );
 				allocator = new ( place ) TinyObjectAllocator( info.initialBlocks, alignedSize, info.alignment );
 				break;
