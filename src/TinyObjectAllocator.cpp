@@ -14,6 +14,7 @@ namespace memwa
 TinyObjectAllocator::TinyObjectAllocator( unsigned int initialBlocks, std::size_t objectSize, std::size_t alignment ) :
     info_( initialBlocks, objectSize * UCHAR_MAX, objectSize, alignment )
 {
+    assert( objectSize <= TinyBlock::MaxObjectSize );
 //    std::cout << __FUNCTION__ << " : " << __LINE__ << std::endl;
 }
 
@@ -28,6 +29,7 @@ TinyObjectAllocator::~TinyObjectAllocator( void )
 void * TinyObjectAllocator::Allocate( std::size_t size, const void * hint )
 {
     const std::size_t alignedSize = memwa::impl::CalculateAlignedSize( size, info_.alignment_ );
+    assert( alignedSize <= TinyBlock::MaxObjectSize );
     if ( info_.objectSize_ < alignedSize )
     {
         throw std::invalid_argument( "Error! Requested size is too large for TinyObjectAllocator." );
@@ -80,6 +82,7 @@ bool TinyObjectAllocator::Release( void * place, std::size_t objectSize )
     {
         return false;
     }
+    assert( objectSize <= TinyBlock::MaxObjectSize );
     if ( memwa::impl::CalculateAlignedSize( objectSize, info_.alignment_ ) != info_.objectSize_ )
     {
         throw std::invalid_argument( "Requested object size does not match pool object size." );
@@ -108,6 +111,7 @@ bool TinyObjectAllocator::Release( void * place, std::size_t size, std::size_t a
     {
         throw std::invalid_argument( "Requested object size does not match pool object size." );
     }
+    assert( size <= TinyBlock::MaxObjectSize );
     const bool success = info_.Release( place );
     return success;
 }

@@ -1,5 +1,4 @@
 
-
 #pragma once
 
 #include "AllocatorManager.hpp"
@@ -9,6 +8,8 @@
 #include <cstddef> // For std::size_t.
 
 #include <mutex>
+
+// ----------------------------------------------------------------------------
 
 namespace memwa
 {
