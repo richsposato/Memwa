@@ -129,6 +129,21 @@ void TestTinyBlock()
 	std::cout << objectSize << "\t\t" << alignment << std::endl;
 
 	objectSize = 2;
+	alignment = 1;
+	TestTinyBlock( u, objectSize, alignment );
+	std::cout << objectSize << "\t\t" << alignment << std::endl;
+
+	objectSize = 2;
+	alignment = 2;
+	TestTinyBlock( u, objectSize, alignment );
+	std::cout << objectSize << "\t\t" << alignment << std::endl;
+
+	objectSize = 4;
+	alignment = 1;
+	TestTinyBlock( u, objectSize, alignment );
+	std::cout << objectSize << "\t\t" << alignment << std::endl;
+
+	objectSize = 4;
 	alignment = 2;
 	TestTinyBlock( u, objectSize, alignment );
 	std::cout << objectSize << "\t\t" << alignment << std::endl;
@@ -138,7 +153,12 @@ void TestTinyBlock()
 	TestTinyBlock( u, objectSize, alignment );
 	std::cout << objectSize << "\t\t" << alignment << std::endl;
 
-	objectSize = 4;
+	objectSize = 8;
+	alignment = 1;
+	TestTinyBlock( u, objectSize, alignment );
+	std::cout << objectSize << "\t\t" << alignment << std::endl;
+
+	objectSize = 8;
 	alignment = 2;
 	TestTinyBlock( u, objectSize, alignment );
 	std::cout << objectSize << "\t\t" << alignment << std::endl;
@@ -148,12 +168,52 @@ void TestTinyBlock()
 	TestTinyBlock( u, objectSize, alignment );
 	std::cout << objectSize << "\t\t" << alignment << std::endl;
 
+	objectSize = 8;
+	alignment = 8;
+	TestTinyBlock( u, objectSize, alignment );
+	std::cout << objectSize << "\t\t" << alignment << std::endl;
+
+	objectSize = 16;
+	alignment = 1;
+	TestTinyBlock( u, objectSize, alignment );
+	std::cout << objectSize << "\t\t" << alignment << std::endl;
+
+	objectSize = 16;
+	alignment = 2;
+	TestTinyBlock( u, objectSize, alignment );
+	std::cout << objectSize << "\t\t" << alignment << std::endl;
+
+	objectSize = 16;
+	alignment = 4;
+	TestTinyBlock( u, objectSize, alignment );
+	std::cout << objectSize << "\t\t" << alignment << std::endl;
+
 	objectSize = 16;
 	alignment = 8;
 	TestTinyBlock( u, objectSize, alignment );
 	std::cout << objectSize << "\t\t" << alignment << std::endl;
 
+	objectSize = 16;
+	alignment = 16;
+	TestTinyBlock( u, objectSize, alignment );
+	std::cout << objectSize << "\t\t" << alignment << std::endl;
+
 	objectSize = 12;
+	alignment = 4;
+	TestTinyBlock( u, objectSize, alignment );
+	std::cout << objectSize << "\t\t" << alignment << std::endl;
+
+	objectSize = 32;
+	alignment = 1;
+	TestTinyBlock( u, objectSize, alignment );
+	std::cout << objectSize << "\t\t" << alignment << std::endl;
+
+	objectSize = 32;
+	alignment = 2;
+	TestTinyBlock( u, objectSize, alignment );
+	std::cout << objectSize << "\t\t" << alignment << std::endl;
+
+	objectSize = 32;
 	alignment = 4;
 	TestTinyBlock( u, objectSize, alignment );
 	std::cout << objectSize << "\t\t" << alignment << std::endl;
@@ -167,6 +227,12 @@ void TestTinyBlock()
 	alignment = 16;
 	TestTinyBlock( u, objectSize, alignment );
 	std::cout << objectSize << "\t\t" << alignment << std::endl;
+
+/*	objectSize = 32;
+	alignment = 32;
+	TestTinyBlock( u, objectSize, alignment );
+	std::cout << objectSize << "\t\t" << alignment << std::endl;
+*/
 }
 
 // ----------------------------------------------------------------------------
