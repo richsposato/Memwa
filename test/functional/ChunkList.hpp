@@ -100,6 +100,13 @@ public:
 
 	bool RemoveChunk( unsigned int index );
 
+	const ChunkSpot GetChunk( unsigned int index ) const;
+
+	ChunkSpot GetChunk( unsigned int index )
+	{
+		return ( const_cast< const SizedChunkList * >( this ) )->GetChunk( index );
+	}
+
 	const ChunkInfo * GetTopChunk() const;
 
 	ChunkInfo * GetTopChunk()
@@ -127,5 +134,25 @@ private:
 	Chunks chunks_;
 
 };
+
+// ----------------------------------------------------------------------------
+
+enum Actions
+{
+	AllocateOne = 0,
+	AllocateMany,
+	AllocateOneHint,
+	AllocateManyHint,
+	ReleaseOneTop,
+	ReleaseManyTop,
+	ReleaseOneBottom,
+	ReleaseManyBottom,
+	ReleaseOneRandom,
+	ReleaseManyRandom,
+};
+
+Actions ChooseAction( const ChunkList & chunks );
+
+Actions ChooseAction( const SizedChunkList & chunks );
 
 // ----------------------------------------------------------------------------

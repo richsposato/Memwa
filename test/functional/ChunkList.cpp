@@ -5,6 +5,8 @@
 #include <set>
 #include <stdexcept>
 
+#include <cstdlib>
+
 typedef std::set< void * > ChunkSet;
 typedef ChunkSet::iterator ChunkSetIter;
 typedef ChunkSet::const_iterator ChunkSetCIter;
@@ -236,6 +238,21 @@ bool SizedChunkList::RemoveChunk( unsigned int index )
 
 // ----------------------------------------------------------------------------
 
+const SizedChunkList::ChunkSpot SizedChunkList::GetChunk( unsigned int index ) const
+{
+	if ( chunks_.size() <= index )
+	{
+		throw std::logic_error( "Index out of range." );
+	}
+	ChunksCIter cit( chunks_.begin() );
+	cit += index;
+	const ChunkInfo & info = *cit; 
+	ChunkSpot spot( info, index );
+	return spot;
+}
+
+// ----------------------------------------------------------------------------
+
 const ChunkInfo * SizedChunkList::GetTopChunk() const
 {
 	const unsigned int count = chunks_.size();
@@ -332,6 +349,32 @@ void SizedChunkList::Output() const
 		std::size_t address = reinterpret_cast< std::size_t >( place );
 		std::cout << "  place: " << address << "   bytes: " << chunk.GetSize() << std::endl;
 	}
+}
+
+// ----------------------------------------------------------------------------
+
+Actions ChooseAction( const ChunkList & chunks )
+{
+	if ( 0 == chunks.GetCount() )
+	{
+		unsigned int action = rand() % Actions::AllocateOneHint;
+		return static_cast< Actions >( action );
+	}
+	unsigned int action = rand() % ( Actions::ReleaseManyRandom + 1 );
+	return static_cast< Actions >( action );
+}
+
+// ----------------------------------------------------------------------------
+
+Actions ChooseAction( const SizedChunkList & chunks )
+{
+	if ( 0 == chunks.GetCount() )
+	{
+		unsigned int action = rand() % Actions::AllocateOneHint;
+		return static_cast< Actions >( action );
+	}
+	unsigned int action = rand() % ( Actions::ReleaseManyRandom + 1 );
+	return static_cast< Actions >( action );
 }
 
 // ----------------------------------------------------------------------------
