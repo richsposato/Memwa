@@ -4,7 +4,6 @@
 #include "ManagerImpl.hpp"
 
 #include <cassert>
-#include <climits>
 #include <cstdlib>
 
 #include <bitset>
