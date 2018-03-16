@@ -105,6 +105,7 @@ struct BlockInfo
 			BlockType & block = *it;
 			block.Destroy();
 		}
+		blocks_.clear();
 	}
 
 	void * Allocate( std::size_t size, const void * hint )
@@ -160,12 +161,7 @@ struct BlockInfo
 		// Now try to create a new block and insert it into container.
 		BlockType block( blockSize_, alignment_ );
 		void * p = block.Allocate( size, blockSize_, alignment_ );
-		if ( nullptr == p )
-		{
-			block.Destroy();
-			return nullptr;
-		}
-
+		assert( nullptr != p );
 		it = std::lower_bound( begin, end, block );
 		recent_ = blocks_.insert( it, block );
 		return p;
@@ -202,7 +198,7 @@ struct BlockInfo
 			const bool resetRecent = ( it == recent_ );
 			block.Destroy();
 			blocks_.erase( it );
-			if ( resetRecent || ( blocks_.size() == 0 ) )
+			if ( resetRecent || ( blocks_.size() == 0 ) || ( blocks_.end() < recent_ ) )
 			{
 				recent_ = blocks_.end();
 			}
@@ -418,11 +414,14 @@ struct AnyPoolBlockInfo : BlockInfo< BlockType >
 			if ( it != end )
 			{
 				BlockType & block = *it;
+				assert( !block.IsCorrupt( BaseClass::blockSize_, BaseClass::alignment_, objectSize_ ) );
 				void * p = block.Allocate();
 				if ( nullptr != p )
 				{
-					return p;
+					assert( !block.IsCorrupt( BaseClass::blockSize_, BaseClass::alignment_, objectSize_ ) );
+					assert( p != hint );
 					BaseClass::recent_ = it;
+					return p;
 				}
 			}
 		}
@@ -431,7 +430,9 @@ struct AnyPoolBlockInfo : BlockInfo< BlockType >
 		if ( BaseClass::recent_ != end )
 		{
 			BlockType & block = *( BaseClass::recent_ );
+			assert( !block.IsCorrupt( BaseClass::blockSize_, BaseClass::alignment_, objectSize_ ) );
 			void * p = block.Allocate();
+			assert( !block.IsCorrupt( BaseClass::blockSize_, BaseClass::alignment_, objectSize_ ) );
 			if ( nullptr != p )
 			{
 				return p;
@@ -444,7 +445,9 @@ struct AnyPoolBlockInfo : BlockInfo< BlockType >
 		while ( it != end )
 		{
 			BlockType & block = *it;
+			assert( !block.IsCorrupt( BaseClass::blockSize_, BaseClass::alignment_, objectSize_ ) );
 			void * p = block.Allocate();
+			assert( !block.IsCorrupt( BaseClass::blockSize_, BaseClass::alignment_, objectSize_ ) );
 			if ( nullptr != p )
 			{
 				BaseClass::recent_ = it;
@@ -456,13 +459,10 @@ struct AnyPoolBlockInfo : BlockInfo< BlockType >
 		// Now try to create a new block and insert it into container.
 		const unsigned int objectsPerPool = BaseClass::blockSize_ / objectSize_;
 		BlockType block( BaseClass::blockSize_, objectSize_, BaseClass::alignment_, objectsPerPool );
+		assert( !block.IsCorrupt( BaseClass::blockSize_, BaseClass::alignment_, objectSize_ ) );
 		void * p = block.Allocate();
-		if ( nullptr == p )
-		{
-			block.Destroy();
-			return nullptr;
-		}
-
+		assert( nullptr != p );
+		assert( !block.IsCorrupt( BaseClass::blockSize_, BaseClass::alignment_, objectSize_ ) );
 		it = std::lower_bound( begin, end, block );
 		BaseClass::recent_ = BaseClass::blocks_.insert( it, block );
 		return p;
@@ -476,7 +476,9 @@ struct AnyPoolBlockInfo : BlockInfo< BlockType >
 			BlockType & block = *( BaseClass::recent_ );
 			if ( block.HasAddress( place, BaseClass::blockSize_ ) )
 			{
+				assert( !block.IsCorrupt( BaseClass::blockSize_, BaseClass::alignment_, objectSize_ ) );
 				const bool success = block.Release( place );
+				assert( !block.IsCorrupt( BaseClass::blockSize_, BaseClass::alignment_, objectSize_ ) );
 				if ( success && block.IsEmpty() )
 				{
 					block.Destroy();
@@ -493,13 +495,15 @@ struct AnyPoolBlockInfo : BlockInfo< BlockType >
 			return false;
 		}	
 		BlockType & block = *it;
+		assert( !block.IsCorrupt( BaseClass::blockSize_, BaseClass::alignment_, objectSize_ ) );
 		const bool success = block.Release( place );
+		assert( !block.IsCorrupt( BaseClass::blockSize_, BaseClass::alignment_, objectSize_ ) );
 		if ( success && block.IsEmpty() )
 		{
 			const bool resetRecent = ( it == BaseClass::recent_ );
 			block.Destroy();
 			BaseClass::blocks_.erase( it );
-			if ( resetRecent || ( BaseClass::blocks_.size() == 0 ) )
+			if ( resetRecent || ( BaseClass::blocks_.size() == 0 ) || ( BaseClass::blocks_.end() < BaseClass::recent_ ) )
 			{
 				BaseClass::recent_ = BaseClass::blocks_.end();
 			}
@@ -584,11 +588,12 @@ struct TinyBlockPoolInfo : AnyPoolBlockInfo< BlockType >
 			{
 				assert( BaseClass::blocks_.size() != 0 );
 				BlockType & block = *it;
-				void * p = block.Allocate( BaseClass::blockSize_ );
+				void * p = block.Allocate( BaseClass::objectSize_ );
 				if ( nullptr != p )
 				{
-					return p;
 					BaseClass::recent_ = it;
+					assert( !IsCorrupt() );
+					return p;
 				}
 			}
 		}
@@ -601,6 +606,7 @@ struct TinyBlockPoolInfo : AnyPoolBlockInfo< BlockType >
 			void * p = block.Allocate( BaseClass::objectSize_ );
 			if ( nullptr != p )
 			{
+				assert( !IsCorrupt() );
 				return p;
 			}
 		}
@@ -627,7 +633,6 @@ struct TinyBlockPoolInfo : AnyPoolBlockInfo< BlockType >
 		BlockType block( BaseClass::blockSize_, BaseClass::objectSize_, BaseClass::alignment_, objectsPerPool );
 		void * p = block.Allocate( BaseClass::objectSize_ );
 		assert( nullptr != p );
-
 		it = std::lower_bound( begin, end, block );
 		BaseClass::recent_ = BaseClass::blocks_.insert( it, block );
 		assert( !IsCorrupt() );
@@ -668,7 +673,7 @@ struct TinyBlockPoolInfo : AnyPoolBlockInfo< BlockType >
 			const bool resetRecent = ( it == BaseClass::recent_ );
 			block.Destroy();
 			BaseClass::blocks_.erase( it );
-			if ( resetRecent || ( BaseClass::blocks_.size() == 0 ) )
+			if ( resetRecent || ( BaseClass::blocks_.size() == 0 ) || ( BaseClass::recent_ > BaseClass::blocks_.end() ) )
 			{
 				BaseClass::recent_ = BaseClass::blocks_.end();
 			}
@@ -680,8 +685,14 @@ struct TinyBlockPoolInfo : AnyPoolBlockInfo< BlockType >
 	bool IsCorrupt() const
 	{
 		assert( nullptr != this );
+		const BlocksCIter begin( BaseClass::blocks_.begin() );
 		const BlocksCIter end( BaseClass::blocks_.end() );
-		for ( BlocksCIter it( BaseClass::blocks_.begin() ); it != end; ++it )
+		if ( BaseClass::recent_ != end )
+		{
+			assert( begin <= BaseClass::recent_ );
+			assert( BaseClass::recent_ < end );
+		}
+		for ( BlocksCIter it( begin ); it != end; ++it )
 		{
 			const BlockType & block = *it;
 			assert( !block.IsDestroyed() );
