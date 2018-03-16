@@ -3,17 +3,19 @@
 
 #include <mutex>
 
+// ----------------------------------------------------------------------------
+
 class LockGuard
 {
 public:
 
 	LockGuard( std::mutex & m, bool lock = true ) :
-		locked_( lock ),
+		locked_( false ),
 		m_( m )
 	{
-		if ( locked_ )
+		if ( lock )
 		{
-			m_.lock();
+			Lock();
 		}
 	}
 
@@ -35,6 +37,11 @@ public:
 		}
 	}
 
+	bool IsLocked() const
+	{
+		return locked_;
+	}
+
 	~LockGuard()
 	{
 		if ( locked_ )
@@ -51,6 +58,7 @@ private:
 
 };
 
+// ----------------------------------------------------------------------------
 
 class ReentryGuard
 {
@@ -77,4 +85,4 @@ private:
 
 };
 
-
+// ----------------------------------------------------------------------------
