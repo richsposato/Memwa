@@ -69,6 +69,7 @@ void PoolBlock::Destroy()
 
 void * PoolBlock::Allocate()
 {
+	assert( block_ != nullptr );
 	if ( IsFull() )
 	{
 		return nullptr;
@@ -84,6 +85,8 @@ void * PoolBlock::Allocate()
 
 bool PoolBlock::Release( void * place )
 {
+	assert( block_ != nullptr );
+	assert( place != nullptr );
 	std::size_t * p = reinterpret_cast< std::size_t * >( place );
 	*p = reinterpret_cast< std::size_t >( free_ );
 	free_ = p;
@@ -95,6 +98,7 @@ bool PoolBlock::Release( void * place )
 
 bool PoolBlock::HasAddress( const void * place, std::size_t blockSize ) const
 {
+	assert( block_ != nullptr );
 	if ( place < block_ )
 	{
 		return false;
@@ -112,6 +116,7 @@ bool PoolBlock::HasAddress( const void * place, std::size_t blockSize ) const
 
 bool PoolBlock::IsBelowAddress( const void * place, std::size_t blockSize ) const
 {
+	assert( block_ != nullptr );
 	const unsigned char * const b = reinterpret_cast< const unsigned char * >( block_ );
 	const unsigned char * const p = reinterpret_cast< const unsigned char * >( place );
 	const bool isBelow = ( b + blockSize <= p );
@@ -124,8 +129,8 @@ bool PoolBlock::IsCorrupt( std::size_t blockSize, std::size_t alignment, std::si
 {
 	assert( nullptr != this );
 	assert( block_ != nullptr );
-	assert( block_ != nullptr );
 	const unsigned int objectsPerPool = blockSize / objectSize;
+	assert( objectsPerPool * objectSize == blockSize );
 	if ( free_ == nullptr )
 	{
 		assert( objectCount_ != 0 );
