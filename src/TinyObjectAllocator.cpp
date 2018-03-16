@@ -3,6 +3,7 @@
 
 #include "TinyBlock.hpp"
 #include "ManagerImpl.hpp"
+#include "LockGuard.hpp"
 
 #include <cassert>
 
@@ -29,7 +30,6 @@ TinyObjectAllocator::~TinyObjectAllocator( void )
 void * TinyObjectAllocator::Allocate( std::size_t size, const void * hint )
 {
     const std::size_t alignedSize = memwa::impl::CalculateAlignedSize( size, info_.alignment_ );
-    assert( alignedSize <= TinyBlock::MaxObjectSize );
     if ( info_.objectSize_ < alignedSize )
     {
         throw std::invalid_argument( "Error! Requested size is too large for TinyObjectAllocator." );
@@ -203,8 +203,13 @@ ThreadSafeTinyObjectAllocator::~ThreadSafeTinyObjectAllocator()
 
 void * ThreadSafeTinyObjectAllocator::Allocate( std::size_t size, const void * hint )
 {
+//    std::cout << __FUNCTION__ << " : " << __LINE__ << std::endl;
     LockGuard guard( mutex_ );
-    return TinyObjectAllocator::Allocate( size, hint );
+    assert( guard.IsLocked() );
+//    std::cout << __FUNCTION__ << " : " << __LINE__ << std::endl;
+    void * place = TinyObjectAllocator::Allocate( size, hint );
+//    std::cout << __FUNCTION__ << " : " << __LINE__ << std::endl;
+    return place;
 }
 
 // ----------------------------------------------------------------------------
@@ -215,16 +220,24 @@ void * ThreadSafeTinyObjectAllocator::Allocate( std::size_t size, std::align_val
 void * ThreadSafeTinyObjectAllocator::Allocate( std::size_t size, std::size_t alignment, const void * hint )
 #endif
 {
+//    std::cout << __FUNCTION__ << " : " << __LINE__ << std::endl;
     LockGuard guard( mutex_ );
-    return TinyObjectAllocator::Allocate( size, alignment, hint );
+    assert( guard.IsLocked() );
+    void * place = TinyObjectAllocator::Allocate( size, alignment, hint );
+//    std::cout << __FUNCTION__ << " : " << __LINE__ << std::endl;
+    return place;
 }
 
 // ----------------------------------------------------------------------------
 
 bool ThreadSafeTinyObjectAllocator::Release( void * place, std::size_t size )
 {
+//    std::cout << __FUNCTION__ << " : " << __LINE__ << std::endl;
     LockGuard guard( mutex_ );
-    return TinyObjectAllocator::Release( place, size );
+    assert( guard.IsLocked() );
+    const bool released = TinyObjectAllocator::Release( place, size );
+//    std::cout << __FUNCTION__ << " : " << __LINE__ << std::endl;
+    return released;
 }
 
 // ----------------------------------------------------------------------------
@@ -235,8 +248,11 @@ bool ThreadSafeTinyObjectAllocator::Release( void * place, std::size_t size, std
 bool ThreadSafeTinyObjectAllocator::Release( void * place, std::size_t size, std::size_t alignment )
 #endif
 {
+//    std::cout << __FUNCTION__ << " : " << __LINE__ << std::endl;
     LockGuard guard( mutex_ );
-    return TinyObjectAllocator::Release( place, size, alignment );
+    assert( guard.IsLocked() );
+    const bool released = TinyObjectAllocator::Release( place, size, alignment );
+    return released;
 }
 
 // ----------------------------------------------------------------------------
@@ -244,6 +260,7 @@ bool ThreadSafeTinyObjectAllocator::Release( void * place, std::size_t size, std
 bool ThreadSafeTinyObjectAllocator::HasAddress( void * place ) const
 {
     LockGuard guard( mutex_ );
+    assert( guard.IsLocked() );
     return TinyObjectAllocator::HasAddress( place );
 }
 
@@ -252,6 +269,7 @@ bool ThreadSafeTinyObjectAllocator::HasAddress( void * place ) const
 bool ThreadSafeTinyObjectAllocator::TrimEmptyBlocks()
 {
     LockGuard guard( mutex_ );
+    assert( guard.IsLocked() );
     return TinyObjectAllocator::TrimEmptyBlocks();
 }
 
@@ -260,6 +278,7 @@ bool ThreadSafeTinyObjectAllocator::TrimEmptyBlocks()
 bool ThreadSafeTinyObjectAllocator::IsCorrupt() const
 {
     LockGuard guard( mutex_ );
+    assert( guard.IsLocked() );
     return TinyObjectAllocator::IsCorrupt();
 }
 
@@ -268,6 +287,7 @@ bool ThreadSafeTinyObjectAllocator::IsCorrupt() const
 float ThreadSafeTinyObjectAllocator::GetFragmentationPercent() const
 {
     LockGuard guard( mutex_ );
+    assert( guard.IsLocked() );
     return TinyObjectAllocator::GetFragmentationPercent();
 }
 
@@ -276,6 +296,7 @@ float ThreadSafeTinyObjectAllocator::GetFragmentationPercent() const
 void ThreadSafeTinyObjectAllocator::Destroy()
 {
     LockGuard guard( mutex_ );
+    assert( guard.IsLocked() );
     TinyObjectAllocator::Destroy();
 }
 
