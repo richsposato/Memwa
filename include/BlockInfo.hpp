@@ -126,8 +126,8 @@ struct BlockInfo
 				void * p = block.Allocate( size, blockSize_, alignment_ );
 				if ( nullptr != p )
 				{
-					return p;
 					recent_ = it;
+					return p;
 				}
 			}
 		}
