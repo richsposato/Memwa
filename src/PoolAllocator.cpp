@@ -224,7 +224,7 @@ ThreadSafePoolAllocator::~ThreadSafePoolAllocator()
 void * ThreadSafePoolAllocator::Allocate( std::size_t size, const void * hint )
 {
 	LockGuard guard( mutex_ );
-    assert( guard.IsLocked() );
+    assert( guard.owns_lock() );
 	return PoolAllocator::Allocate( size, hint );
 }
 
@@ -237,7 +237,7 @@ void * ThreadSafePoolAllocator::Allocate( std::size_t size, std::size_t alignmen
 #endif
 {
 	LockGuard guard( mutex_ );
-    assert( guard.IsLocked() );
+    assert( guard.owns_lock() );
 	return PoolAllocator::Allocate( size, alignment, hint );
 }
 
@@ -246,7 +246,7 @@ void * ThreadSafePoolAllocator::Allocate( std::size_t size, std::size_t alignmen
 bool ThreadSafePoolAllocator::Release( void * place, std::size_t size )
 {
 	LockGuard guard( mutex_ );
-    assert( guard.IsLocked() );
+    assert( guard.owns_lock() );
 	return PoolAllocator::Release( place, size );
 }
 
@@ -259,7 +259,7 @@ bool ThreadSafePoolAllocator::Release( void * place, std::size_t size, std::size
 #endif
 {
 	LockGuard guard( mutex_ );
-    assert( guard.IsLocked() );
+    assert( guard.owns_lock() );
 	return PoolAllocator::Release( place, size, alignment );
 }
 
@@ -268,7 +268,7 @@ bool ThreadSafePoolAllocator::Release( void * place, std::size_t size, std::size
 bool ThreadSafePoolAllocator::HasAddress( void * place ) const
 {
 	LockGuard guard( mutex_ );
-    assert( guard.IsLocked() );
+    assert( guard.owns_lock() );
 	return PoolAllocator::HasAddress( place );
 }
 
@@ -277,7 +277,7 @@ bool ThreadSafePoolAllocator::HasAddress( void * place ) const
 bool ThreadSafePoolAllocator::TrimEmptyBlocks()
 {
 	LockGuard guard( mutex_ );
-    assert( guard.IsLocked() );
+    assert( guard.owns_lock() );
 	return PoolAllocator::TrimEmptyBlocks();
 }
 
@@ -286,7 +286,7 @@ bool ThreadSafePoolAllocator::TrimEmptyBlocks()
 bool ThreadSafePoolAllocator::IsCorrupt() const
 {
 	LockGuard guard( mutex_ );
-    assert( guard.IsLocked() );
+    assert( guard.owns_lock() );
 	return PoolAllocator::IsCorrupt();
 }
 
@@ -295,7 +295,7 @@ bool ThreadSafePoolAllocator::IsCorrupt() const
 float ThreadSafePoolAllocator::GetFragmentationPercent() const
 {
 	LockGuard guard( mutex_ );
-    assert( guard.IsLocked() );
+    assert( guard.owns_lock() );
 	return PoolAllocator::GetFragmentationPercent();
 }
 
