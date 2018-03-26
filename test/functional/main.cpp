@@ -804,7 +804,7 @@ int main( int argc, const char * const argv[] )
 	ComplexTestStackAllocator( false, showProximityCounts );
 	ComplexTestTinyAllocator( false, showProximityCounts );
 	ComplexTestPoolAllocator( false, showProximityCounts );
-/*
+
 	TestManagerExceptions( true );
 	TestAllocatorExceptions( true );
 	TestAlignment( true );
@@ -817,7 +817,7 @@ int main( int argc, const char * const argv[] )
 	ComplexTestStackAllocator( true, showProximityCounts );
 	ComplexTestTinyAllocator( true, showProximityCounts );
 	ComplexTestPoolAllocator( true, showProximityCounts );
-*/
+
 	if ( args.DoMakeTableAtExitTime() )
 	{
 		uts.OutputSummary();
