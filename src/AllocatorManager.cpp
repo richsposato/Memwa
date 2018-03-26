@@ -184,7 +184,7 @@ ManagerImpl::ManagerImpl( bool multithreaded, std::size_t internalBlockSize ) :
 
 ManagerImpl::~ManagerImpl()
 {
-	LockGuard guard( mutex_, multithreaded_ );
+	LockGuard guard( mutex_ );
 	std::set_new_handler( oldHandler_ );
 }
 
@@ -206,7 +206,7 @@ void ManagerImpl::ReleaseAllocators()
 
 void * ManagerImpl::Allocate( std::size_t bytes )
 {
-	LockGuard guard( mutex_, multithreaded_ );
+	LockGuard guard( mutex_ );
 	void * p = common_.Allocate( bytes, blockSize_, alignment_ );
 	assert( p != nullptr );
 	return p;
@@ -216,7 +216,7 @@ void * ManagerImpl::Allocate( std::size_t bytes )
 
 bool ManagerImpl::AddAllocator( Allocator * allocator )
 {
-	LockGuard guard( mutex_, multithreaded_ );
+	LockGuard guard( mutex_ );
 
 	const AllocatorsIter end( allocators_.end() );
 	AllocatorsIter here( end );
@@ -242,7 +242,7 @@ bool ManagerImpl::AddAllocator( Allocator * allocator )
 
 bool ManagerImpl::RemoveAllocator( Allocator * allocator )
 {
-	LockGuard guard( mutex_, multithreaded_ );
+	LockGuard guard( mutex_ );
 
 	const AllocatorsIter end( allocators_.end() );
 	for ( AllocatorsIter it( allocators_.begin() ); it != end; ++it )
@@ -262,7 +262,7 @@ bool ManagerImpl::RemoveAllocator( Allocator * allocator )
 
 bool ManagerImpl::TrimEmptyBlocks( Allocator * allocator )
 {
-	LockGuard guard( mutex_, multithreaded_ );
+	LockGuard guard( mutex_ );
 	static bool entered = false;
 	if ( entered )
 	{
