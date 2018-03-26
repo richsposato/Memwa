@@ -132,7 +132,7 @@ bool StackAllocator::Resize( void * place, std::size_t oldSize, std::size_t newS
 	{
 		throw std::invalid_argument( "Requested alignment size must be less than or equal to initial alignment size." );
 	}
-	const bool success = Resize( place, oldSize, newSize );
+	const bool success = StackAllocator::Resize( place, oldSize, newSize );
 	return success;
 }
 
