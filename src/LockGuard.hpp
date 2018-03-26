@@ -3,60 +3,7 @@
 
 #include <mutex>
 
-// ----------------------------------------------------------------------------
-
-class LockGuard
-{
-public:
-
-	LockGuard( std::mutex & m, bool lock = true ) :
-		locked_( false ),
-		m_( m )
-	{
-		if ( lock )
-		{
-			Lock();
-		}
-	}
-
-	void Lock()
-	{
-		if ( !locked_ )
-		{
-			m_.lock();
-			locked_ = true;
-		}
-	}
-
-	void Unlock()
-	{
-		if ( locked_ )
-		{
-			m_.unlock();
-			locked_ = false;
-		}
-	}
-
-	bool IsLocked() const
-	{
-		return locked_;
-	}
-
-	~LockGuard()
-	{
-		if ( locked_ )
-		{
-			m_.unlock();
-		}
-	}
-
-private:
-
-	bool locked_;
-
-	std::mutex & m_;
-
-};
+typedef std::unique_lock< std::mutex > LockGuard;
 
 // ----------------------------------------------------------------------------
 
