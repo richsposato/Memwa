@@ -195,7 +195,9 @@ void TestPoolAllocator( bool multithreaded, bool showProximityCounts )
 
 	if ( showProximityCounts )
 	{
-		std::cout << __FUNCTION__ << " : " << __LINE__ << "  hint proximity: " << hintProximityCount << " out of tests: " << hintTestCount << std::endl;
+		const unsigned int percent = ( hintProximityCount * 100 ) / hintTestCount;
+		std::cout << "hint proximity test: " << percent << "% out of " << hintTestCount << " tests." << std::endl
+			<< "  Passing test is when allocator can allocate block near the hint 25% of the time." << std::endl;
 	}
 	UNIT_TEST( u, hintProximityCount * 4 > hintTestCount );
 	UNIT_TEST_WITH_MSG( u, AllocatorManager::DestroyAllocator( allocator, true ), "DestroyAllocator should pass since parameter is valid." );
@@ -383,7 +385,9 @@ void ComplexTestPoolAllocator( bool multithreaded, bool showProximityCounts )
 
 	if ( showProximityCounts )
 	{
-		std::cout << __FUNCTION__ << " : " << __LINE__ << "  hint proximity: " << hintProximityCount << " out of tests: " << hintTestCount << std::endl;
+		const unsigned int percent = ( hintProximityCount * 100 ) / hintTestCount;
+		std::cout << "hint proximity test: " << percent << "% out of " << hintTestCount << " tests." << std::endl
+			<< "  Passing test is when allocator can allocate block near the hint 25% of the time." << std::endl;
 	}
 	UNIT_TEST( u, hintProximityCount * 4 > hintTestCount );
 	UNIT_TEST( u, chunks.GetCount() == 0 );
