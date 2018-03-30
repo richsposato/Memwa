@@ -13,7 +13,7 @@ using namespace std;
 void CommandLineArgs::ShowHelp( void ) const
 {
 	cout << "Usage: " << m_exeName << endl;
-	cout << " [-f] [-p] [-D] [-z] [-a] [-o:[ndhmptw]]" << endl;
+	cout << " [-f] [-p] [-D] [-z] [-a] [-o:[ndhmptw]] [-y:[betscam]" << endl;
 	cout << " [-s] [-t:file] [-h:file] [-x:file] [-?] [--help]" << endl;
 	cout << endl;
 	cout << "Parameters: (order of parameters does not matter)" << endl;
@@ -43,6 +43,15 @@ void CommandLineArgs::ShowHelp( void ) const
 	cout << "		 Default output option is same as -o:hmtTw." << endl;
 	cout << "	  E  Send test results to standard error." << endl;
 	cout << "	  S  Send test results to standard output." << endl;
+	cout << "  -y Choose test types." << endl;
+	cout << "	 m   Test Allocator Manager." << endl;
+	cout << "	 b   Test Allocator Blocks." << endl;
+	cout << "	 e   Test for exceptions." << endl;
+	cout << "	 a   Run alignment tests." << endl;
+	cout << "	 s   Run simple allocator tests." << endl;
+	cout << "	 c   Run complex allocator tests." << endl;
+	cout << "	 t   Run multi-threaded tests." << endl;
+	cout << "	 *   Run all tests. Overrides other test type options." << endl;
 	cout << "  -t  Send test results to text file." << endl;
 	cout << "		\"file\" is a partial file name." << endl;
 	cout << "  -h  Send test results to HTML file." << endl;
@@ -72,6 +81,13 @@ CommandLineArgs::CommandLineArgs( unsigned int argc, const char * const argv[] )
 	m_doRepeatTests( false ),
 	m_tableAtExitTime( false ),
 	m_deleteAtExitTime( true ),
+	m_runManagerTests( false ),
+	m_runExceptionTests( false ),
+	m_runAlignmentTests( false ),
+	m_runSimpleTests( false ),
+	m_runComplexTests( false ),
+	m_runBlockTests( false ),
+	m_runThreadTests( false ),
 	m_outputOptions( ut::UnitTestSet::Nothing ),
 	m_exeName( argv[0] ),
 	m_xmlFileName( NULL ),
@@ -86,6 +102,7 @@ CommandLineArgs::CommandLineArgs( unsigned int argc, const char * const argv[] )
 
 	bool okay = true;
 	bool parsedOutput = false;
+	bool parsedTestTypes = false;
 
 	for ( unsigned int ii = 1; ( okay ) && ( ii < argc ); ++ii )
 	{
@@ -157,6 +174,14 @@ CommandLineArgs::CommandLineArgs( unsigned int argc, const char * const argv[] )
 				if ( okay )
 					okay = ParseOutputOptions (ss+3);
 				parsedOutput = true;
+				break;
+			case 'y':
+				okay = ( 3 < length ) && ( ':' == ss[2] );
+				if ( okay )
+					okay = !parsedTestTypes;
+				if ( okay )
+					okay = ParseTestTypeOptions (ss+3);
+				parsedTestTypes = true;
 				break;
 			case 'p':
 				okay = ( length == 2 );
@@ -231,6 +256,98 @@ CommandLineArgs::CommandLineArgs( unsigned int argc, const char * const argv[] )
 			okay = false;
 	}
 	m_valid = okay;
+}
+
+// ----------------------------------------------------------------------------
+
+bool CommandLineArgs::ParseTestTypeOptions( const char * ss )
+{
+
+	bool okay = true;
+	bool runAll = false;
+	bool runManager = false;
+	bool runExceptions = false;
+	bool runBlocks = false;
+	bool runSimple = false;
+	bool runComplex = false;
+	bool runThreads = false;
+	bool runAlignment = false;
+	while ( okay && ( *ss != '\0' ) )
+	{
+		const char cc = *ss;
+		switch ( cc )
+		{
+			case '*':
+				if ( runAll )
+					okay = false;
+				else
+					runAll = true;
+				break;
+			case 'm':
+				if ( runManager )
+					okay = false;
+				else
+					runManager = true;
+				break;
+			case 'b':
+				if ( runBlocks )
+					okay = false;
+				else
+					runBlocks = true;
+				break;
+			case 'a':
+				if ( runAlignment )
+					okay = false;
+				else
+					runAlignment = true;
+				break;
+			case 's':
+				if ( runSimple )
+					okay = false;
+				else
+					runSimple = true;
+				break;
+			case 'c':
+				if ( runComplex )
+					okay = false;
+				else
+					runComplex = true;
+				break;
+			case 't':
+				if ( runThreads )
+					okay = false;
+				else
+					runThreads = true;
+				break;
+			default:
+				okay = false;
+				break;
+		}
+		++ss;
+	}
+
+	if ( !runComplex && !runThreads && !runManager && !runExceptions && !runBlocks && !runSimple && !runAlignment && !runAll )
+	{
+		okay = false;
+	}
+	if ( okay && runAll )
+	{
+		runManager = true;
+		runExceptions = true;
+		runBlocks = true;
+		runSimple = true;
+		runComplex = true;
+		runThreads = true;
+		runAlignment = true;
+	}
+	if ( runManager ) m_runManagerTests = true;
+	if ( runExceptions ) m_runExceptionTests = true;
+	if ( runBlocks ) m_runBlockTests = true;
+	if ( runSimple ) m_runSimpleTests = true;
+	if ( runComplex ) m_runComplexTests = true;
+	if ( runThreads ) m_runThreadTests = true;
+	if ( runAlignment ) m_runAlignmentTests = true;
+	return okay;
 }
 
 // ----------------------------------------------------------------------------

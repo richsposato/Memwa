@@ -27,6 +27,14 @@ public:
 
 	inline bool DoShowHelp( void ) const { return m_doShowHelp; }
 
+	inline bool RunManagerTests() const { return m_runManagerTests; }
+	inline bool RunExceptionTests() const { return m_runExceptionTests; }
+	inline bool RunAlignmentTests() const { return m_runAlignmentTests; }
+	inline bool RunSimpleTests() const { return m_runSimpleTests; }
+	inline bool RunComplexTests() const { return m_runComplexTests; }
+	inline bool RunBlockTests() const { return m_runBlockTests; }
+	inline bool runThreadTests() const { return m_runThreadTests; }
+
 	inline bool DoShowDataSizes() const { return m_showDataSizes; }
 
 	inline bool DoOnlyPassingTest( void ) const
@@ -69,6 +77,7 @@ private:
 	CommandLineArgs & operator = ( const CommandLineArgs & );
 
 	bool ParseOutputOptions( const char * ss );
+	bool ParseTestTypeOptions( const char * ss );
 
 	bool m_valid;		///< True if all command line parameters are valid.
 	bool m_doShowHelp;
@@ -80,6 +89,13 @@ private:
 	bool m_doRepeatTests;
 	bool m_tableAtExitTime;
 	bool m_deleteAtExitTime;
+	bool m_runManagerTests;
+	bool m_runExceptionTests;
+	bool m_runAlignmentTests;
+	bool m_runSimpleTests;
+	bool m_runComplexTests;
+	bool m_runBlockTests;
+	bool m_runThreadTests;
 	unsigned int m_outputOptions;
 	const char * m_exeName;
 	const char * m_xmlFileName;
