@@ -11,9 +11,11 @@ public:
 
 	typedef std::pair< void *, unsigned int > ChunkSpot;
 
-	explicit ChunkList( unsigned int count );
+	explicit ChunkList( unsigned int count = 0 );
 
 	~ChunkList();
+
+	void Reserve( unsigned int count );
 
 	bool AddChunk( void * place );
 
@@ -44,6 +46,8 @@ public:
 	bool IsSorted() const;
 
 	bool AreUnique() const;
+
+	bool AnyDuplicates( const ChunkList & that ) const;
 
 	unsigned int GetCount() const;
 
@@ -90,9 +94,11 @@ public:
 
 	typedef std::pair< ChunkInfo, unsigned int > ChunkSpot;
 
-	explicit SizedChunkList( unsigned int count );
+	explicit SizedChunkList( unsigned int count = 0 );
 
 	~SizedChunkList();
+
+	void Reserve( unsigned int count );
 
 	bool AddChunk( void * place, std::size_t bytes );
 
@@ -122,6 +128,8 @@ public:
 	bool IsSorted() const;
 
 	bool AreUnique() const;
+
+	bool AnyDuplicates( const SizedChunkList & that ) const;
 
 	unsigned int GetCount() const;
 
@@ -154,5 +162,9 @@ enum Actions
 Actions ChooseAction( const ChunkList & chunks );
 
 Actions ChooseAction( const SizedChunkList & chunks );
+
+Actions ChooseAllocateAction( const ChunkList & chunks );
+
+Actions ChooseAllocateAction( const SizedChunkList & chunks );
 
 // ----------------------------------------------------------------------------

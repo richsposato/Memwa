@@ -33,6 +33,13 @@ ChunkList::~ChunkList()
 
 // ----------------------------------------------------------------------------
 
+void ChunkList::Reserve( unsigned int count )
+{
+	chunks_.reserve( count );
+}
+
+// ----------------------------------------------------------------------------
+
 bool ChunkList::AddChunk( void * place )
 {
 	if ( place == nullptr )
@@ -140,6 +147,40 @@ bool ChunkList::AreUnique() const
 
 // ----------------------------------------------------------------------------
 
+bool ChunkList::AnyDuplicates( const ChunkList & that ) const
+{
+	const unsigned int count = chunks_.size();
+	if ( count == 0 )
+	{
+		return false;
+	}
+	const unsigned int thatCount = that.chunks_.size();
+	if ( thatCount == 0 )
+	{
+		return false;
+	}
+
+	ChunkSet mine;
+	for ( unsigned int ii = 0; ii < count; ++ii )
+	{
+		void * chunk = chunks_[ ii ];
+		mine.insert( chunk );
+	}
+	for ( unsigned int ii = 0; ii < thatCount; ++ii )
+	{
+		void * chunk = that.chunks_[ ii ];
+		const ChunkSetInsertResult result = mine.insert( chunk );
+		if ( !result.second )
+		{
+			return true;
+		}
+	}
+
+	return false;
+}
+
+// ----------------------------------------------------------------------------
+
 bool ChunkList::IsSorted() const
 {
 	const unsigned int count = chunks_.size();
@@ -193,6 +234,13 @@ SizedChunkList::SizedChunkList( unsigned int count ) :
 
 SizedChunkList::~SizedChunkList()
 {
+}
+
+// ----------------------------------------------------------------------------
+
+void SizedChunkList::Reserve( unsigned int count )
+{
+	chunks_.reserve( count );
 }
 
 // ----------------------------------------------------------------------------
@@ -308,6 +356,42 @@ bool SizedChunkList::AreUnique() const
 
 // ----------------------------------------------------------------------------
 
+bool SizedChunkList::AnyDuplicates( const SizedChunkList & that ) const
+{
+	const unsigned int count = chunks_.size();
+	if ( count == 0 )
+	{
+		return false;
+	}
+	const unsigned int thatCount = that.chunks_.size();
+	if ( thatCount == 0 )
+	{
+		return false;
+	}
+
+	SizedChunkSet mine;
+	ChunksCIter end( chunks_.end() );
+	for ( ChunksCIter cit( chunks_.begin() ); cit != end; ++cit )
+	{
+		const ChunkInfo & chunk = *cit;
+		mine.insert( chunk );
+	}
+	end = chunks_.end();
+	for ( ChunksCIter cit( chunks_.begin() ); cit != end; ++cit )
+	{
+		const ChunkInfo & chunk = *cit;
+		const SizedChunkSetInsertResult result = mine.insert( chunk );
+		if ( !result.second )
+		{
+			return true;
+		}
+	}
+
+	return false;
+}
+
+// ----------------------------------------------------------------------------
+
 bool SizedChunkList::IsSorted() const
 {
 	const unsigned int count = chunks_.size();
@@ -374,6 +458,32 @@ Actions ChooseAction( const SizedChunkList & chunks )
 		return static_cast< Actions >( action );
 	}
 	unsigned int action = rand() % ( Actions::ReleaseManyRandom + 1 );
+	return static_cast< Actions >( action );
+}
+
+// ----------------------------------------------------------------------------
+
+Actions ChooseAllocateAction( const ChunkList & chunks )
+{
+	if ( 0 == chunks.GetCount() )
+	{
+		unsigned int action = rand() % Actions::AllocateOneHint;
+		return static_cast< Actions >( action );
+	}
+	unsigned int action = rand() % ( Actions::AllocateManyHint + 1 );
+	return static_cast< Actions >( action );
+}
+
+// ----------------------------------------------------------------------------
+
+Actions ChooseAllocateAction( const SizedChunkList & chunks )
+{
+	if ( 0 == chunks.GetCount() )
+	{
+		unsigned int action = rand() % Actions::AllocateOneHint;
+		return static_cast< Actions >( action );
+	}
+	unsigned int action = rand() % ( Actions::AllocateManyHint + 1 );
 	return static_cast< Actions >( action );
 }
 
