@@ -17,27 +17,37 @@
 using namespace std;
 using namespace memwa;
 
-void TestPoolBlock();
-void TestTinyBlock();
-void TestLinearBlock();
-void TestStackBlock();
-void TestStackBlockResize();
-void TestStackBlockComplex();
-void TestStackExceptions();
+extern void TestPoolBlock();
+extern void TestTinyBlock();
+extern void TestLinearBlock();
+extern void TestStackBlock();
+extern void TestStackBlockResize();
+extern void TestStackBlockComplex();
+extern void TestStackExceptions();
 
-void TestLinearAllocator( bool multithreaded, bool showProximityCounts );
-void TestStackAllocator( bool multithreaded, bool showProximityCounts );
-void TestTinyAllocator( bool multithreaded, bool showProximityCounts );
-void TestPoolAllocator( bool multithreaded, bool showProximityCounts );
+extern void TestLinearAllocator( bool multithreaded, bool showProximityCounts );
+extern void TestStackAllocator( bool multithreaded, bool showProximityCounts );
+extern void TestTinyAllocator( bool multithreaded, bool showProximityCounts );
+extern void TestPoolAllocator( bool multithreaded, bool showProximityCounts );
 
-void ComplexTestStackAllocator( bool multithreaded, bool showProximityCounts );
-void ComplexTestTinyAllocator( bool multithreaded, bool showProximityCounts );
-void ComplexTestPoolAllocator( bool multithreaded, bool showProximityCounts );
+extern void ComplexTestStackAllocator( bool multithreaded, bool showProximityCounts );
+extern void ComplexTestTinyAllocator( bool multithreaded, bool showProximityCounts );
+extern void ComplexTestPoolAllocator( bool multithreaded, bool showProximityCounts );
 
-void DoLinearThreadSafetyTest();
-void DoStackThreadSafetyTest();
-void DoTinyThreadSafetyTest();
-void DoPoolThreadSafetyTest();
+extern void DoSimplePoolThreadTest( bool showProximityCounts );
+extern void DoSimpleTinyThreadTest( bool showProximityCounts );
+extern void DoSimpleStackThreadTest( bool showProximityCounts );
+extern void DoSimpleLinearThreadTest( bool showProximityCounts );
+
+extern void DoDuplicateLinearThreadTest( bool showProximityCounts );
+extern void DoDuplicateStackThreadTest( bool showProximityCounts );
+extern void DoDuplicateTinyThreadTest( bool showProximityCounts );
+extern void DoDuplicatePoolThreadTest( bool showProximityCounts );
+
+extern void DoComplexLinearThreadTest( bool showProximityCounts );
+extern void DoComplexStackThreadTest( bool showProximityCounts );
+extern void DoComplexTinyThreadTest( bool showProximityCounts );
+extern void DoComplexPoolThreadTest( bool showProximityCounts );
 
 // ----------------------------------------------------------------------------
 
@@ -783,40 +793,75 @@ int main( int argc, const char * const argv[] )
 
 	std::srand( std::time( 0 ) );
 
-	TestLinearBlock();
-	TestStackBlock();
-	TestStackBlockResize();
-	TestStackBlockComplex();
-	TestStackExceptions();
-	TestPoolBlock();
-	TestTinyBlock();
+	if ( args.RunBlockTests() )
+	{
+		TestLinearBlock();
+		TestStackBlock();
+		TestStackBlockResize();
+		TestStackBlockComplex();
+		TestStackExceptions();
+		TestPoolBlock();
+		TestTinyBlock();
+	}
 
-	TestAllocatorManager();
-	TestManagerExceptions( false );
-	TestAllocatorExceptions( false );
-	TestAlignment( false );
+	if ( args.RunManagerTests() )
+	{
+		TestAllocatorManager();
+	}
+	if ( args.RunExceptionTests() )
+	{
+		TestManagerExceptions( false );
+		TestAllocatorExceptions( false );
+		TestManagerExceptions( true );
+		TestAllocatorExceptions( true );
+	}
+	if ( args.RunAlignmentTests() )
+	{
+		TestAlignment( false );
+		TestAlignment( true );
+	}
 
-	TestLinearAllocator( false, showProximityCounts );
-	TestStackAllocator( false, showProximityCounts );
-	TestTinyAllocator( false, showProximityCounts );
-	TestPoolAllocator( false, showProximityCounts );
+	if ( args.RunSimpleTests() )
+	{
+		TestLinearAllocator( false, showProximityCounts );
+		TestStackAllocator( false, showProximityCounts );
+		TestTinyAllocator( false, showProximityCounts );
+		TestPoolAllocator( false, showProximityCounts );
 
-	ComplexTestStackAllocator( false, showProximityCounts );
-	ComplexTestTinyAllocator( false, showProximityCounts );
-	ComplexTestPoolAllocator( false, showProximityCounts );
+		TestLinearAllocator( true, showProximityCounts );
+		TestStackAllocator( true, showProximityCounts );
+		TestTinyAllocator( true, showProximityCounts );
+		TestPoolAllocator( true, showProximityCounts );
+	}
 
-	TestManagerExceptions( true );
-	TestAllocatorExceptions( true );
-	TestAlignment( true );
+	if ( args.RunComplexTests() )
+	{
+		ComplexTestStackAllocator( false, showProximityCounts );
+		ComplexTestTinyAllocator( false, showProximityCounts );
+		ComplexTestPoolAllocator( false, showProximityCounts );
 
-	TestLinearAllocator( true, showProximityCounts );
-	TestStackAllocator( true, showProximityCounts );
-	TestTinyAllocator( true, showProximityCounts );
-	TestPoolAllocator( true, showProximityCounts );
+		ComplexTestStackAllocator( true, showProximityCounts );
+		ComplexTestTinyAllocator( true, showProximityCounts );
+		ComplexTestPoolAllocator( true, showProximityCounts );
+	}
 
-	ComplexTestStackAllocator( true, showProximityCounts );
-	ComplexTestTinyAllocator( true, showProximityCounts );
-	ComplexTestPoolAllocator( true, showProximityCounts );
+	if ( args.runThreadTests() )
+	{
+		DoSimplePoolThreadTest( showProximityCounts );
+		DoSimpleTinyThreadTest( showProximityCounts );
+		DoSimpleStackThreadTest( showProximityCounts );
+		DoSimpleLinearThreadTest( showProximityCounts );
+
+		DoDuplicateLinearThreadTest( showProximityCounts );
+		DoDuplicateStackThreadTest( showProximityCounts );
+		DoDuplicateTinyThreadTest( showProximityCounts );
+		DoDuplicatePoolThreadTest( showProximityCounts );
+
+		DoComplexTinyThreadTest( showProximityCounts );
+		DoComplexPoolThreadTest( showProximityCounts );
+		DoComplexLinearThreadTest( showProximityCounts );
+		DoComplexStackThreadTest( showProximityCounts );
+	}
 
 	if ( args.DoMakeTableAtExitTime() )
 	{

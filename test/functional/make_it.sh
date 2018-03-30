@@ -1,3 +1,4 @@
+#!/bin/bash
 
 rm functionality_test.exe
 rm *.o
@@ -13,6 +14,9 @@ echo "Compile TestTinyAllocator.cpp"; g++ -std=c++14 -Wall -I../../include -I../
 echo "Compile TestPoolAllocator.cpp"; g++ -std=c++14 -Wall -I../../include -I../../../Hestia/CppUnitTest/include -c TestPoolAllocator.cpp -o TestPoolAllocator.o
 echo "Compile TestStackAllocator.cpp"; g++ -std=c++14 -Wall -I../../include -I../../../Hestia/CppUnitTest/include -c TestStackAllocator.cpp -o TestStackAllocator.o
 echo "Compile TestLinearAllocator.cpp"; g++ -std=c++14 -Wall -I../../include -I../../../Hestia/CppUnitTest/include -c TestLinearAllocator.cpp -o TestLinearAllocator.o
+echo "Compile TestMultithreaded.cpp"; g++ -std=c++14 -Wall -I../../include -I../../../Hestia/CppUnitTest/include -c TestMultithreaded.cpp -o TestMultithreaded.o
+echo "Compile ComplexMultithreadedTest.cpp"; g++ -std=c++14 -Wall -I../../include -I../../../Hestia/CppUnitTest/include -c ComplexMultithreadedTest.cpp -o ComplexMultithreadedTest.o
+echo "Compile TestMultithreadedDuplicates.cpp"; g++ -std=c++14 -Wall -I../../include -I../../../Hestia/CppUnitTest/include -c TestMultithreadedDuplicates.cpp -o TestMultithreadedDuplicates.o
 
 echo "Linking"
 g++ -std=c++14 -Wall -o functionality_test.exe \
@@ -23,10 +27,13 @@ g++ -std=c++14 -Wall -o functionality_test.exe \
 	TestStackBlock.o \
 	TestLinearBlock.o \
 	CommandLineArgs.o \
+	TestMultithreaded.o \
 	TestPoolAllocator.o \
 	TestTinyAllocator.o \
 	TestStackAllocator.o \
 	TestLinearAllocator.o \
+	ComplexMultithreadedTest.o \
+	TestMultithreadedDuplicates.o \
 	../../src/obj/AllocatorManager.o \
 	../../src/obj/TinyBlock.o \
 	../../src/obj/PoolBlock.o \
@@ -38,3 +45,6 @@ g++ -std=c++14 -Wall -o functionality_test.exe \
 	../../src/obj/TinyObjectAllocator.o \
 	../../../Hestia/CppUnitTest/src/obj/UnitTest.o
 echo "Done!"
+
+
+#	TestMultithreadedDuplicates.o \
