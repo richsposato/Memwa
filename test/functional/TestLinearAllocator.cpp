@@ -41,6 +41,9 @@ void TestLinearAllocator( bool multithreaded, bool showProximityCounts )
 	std::size_t hintDifference = 0; // Difference between hint location and allocated chunk.
 	unsigned int hintTestCount = 0; // Number of allocations with a hint.
 	unsigned int hintProximityCount = 0; // Number of times an allocated chunk is within blockSize of the hint.
+	unsigned int recencyTestCount = 0; // Number of times an allocated chunk should be within blockSize of just previously allocated chunk.
+	unsigned int recencyActualCount = 0; // Number of times an allocated chunk is within blockSize of just previously allocated chunk.
+	void * previous = nullptr;
 
 	{
 		UNIT_TEST_WITH_MSG( u, ( allocator = AllocatorManager::CreateAllocator( allocatorInfo ) ) != nullptr, "allocator should not be nullptr." );
@@ -71,10 +74,26 @@ void TestLinearAllocator( bool multithreaded, bool showProximityCounts )
 			UNIT_TEST( u, ( place = allocator->Allocate( bytes, alignment ) ) );
 			UNIT_TEST( u, ( place != nullptr ) );
 			chunks.AddChunk( place, bytes );
+			if ( nullptr != previous )
+			{
+				const std::size_t prevSpot = reinterpret_cast< std::size_t >( place );
+				placeSpot = reinterpret_cast< std::size_t >( place );
+				const std::size_t prevDifference = ( placeSpot < prevSpot ) ? prevSpot - placeSpot : placeSpot - prevSpot;
+				++recencyTestCount;
+				if ( prevDifference < allocatorInfo.blockSize )
+				{
+					++recencyActualCount;
+				}
+			}
+			previous = place;
 		}
 		UNIT_TEST( u, chunks.GetCount() == chunkCount );
 		UNIT_TEST( u, chunks.AreUnique() );
 		UNIT_TEST_WITH_MSG( u, AllocatorManager::DestroyAllocator( allocator, true ), "DestroyAllocator should pass since parameter is valid." );
+		if ( 0 < recencyTestCount )
+		{
+			UNIT_TEST( u, recencyActualCount * 2 > recencyTestCount );
+		}
 	}
 
 	{
@@ -146,33 +165,16 @@ void TestLinearAllocator( bool multithreaded, bool showProximityCounts )
 
 	if ( showProximityCounts )
 	{
-		const unsigned int percent = ( hintProximityCount * 100 ) / hintTestCount;
+		unsigned int percent = ( hintProximityCount * 100 ) / hintTestCount;
 		std::cout << "hint proximity test: " << percent << "% out of " << hintTestCount << " tests." << std::endl
-			<< "  Passing test is when allocator can allocate block near the hint 25% of the time." << std::endl;
+			<< "  Passing test is when allocator can allocate chunk near the hint more than 25% of the time." << std::endl;
+		if ( 0 < recencyTestCount )
+		{
+			percent = ( recencyActualCount * 100 ) / recencyTestCount;
+			std::cout << "Recency proximity test: " << percent << "% out of " << recencyTestCount << " tests." << std::endl
+				<< "  Passing test is when allocator can allocate chunk near the most recently allocated chunk more than 50% of the time." << std::endl;
+		}
 	}
-	UNIT_TEST_WITH_MSG( u, AllocatorManager::DestroyManager( true ), "Destruction should pass since AllocatorManager exists." );
-}
-
-// ----------------------------------------------------------------------------
-
-void DoLinearThreadSafetyTest()
-{
-	std::cout << "Linear Allocator Thread-Safety Functionality Test" << std::endl; 
-	ut::UnitTestSet & uts = ut::UnitTestSet::GetIt();
-	ut::UnitTest * u = uts.AddUnitTest( "Linear Thread-Safety Test" );
-
-	UNIT_TEST_WITH_MSG( u, AllocatorManager::CreateManager( true, 4096 ), "Creation should pass since AllocatorManager does not exist yet." );
-
-	AllocatorManager::AllocatorParameters allocatorInfo;
-	allocatorInfo.type = AllocatorManager::AllocatorType::Linear;
-	allocatorInfo.objectSize = 16;
-	allocatorInfo.alignment = 8;
-	allocatorInfo.blockSize = 0;
-	allocatorInfo.initialBlocks = 1;
-	Allocator * allocator = nullptr;
-	UNIT_TEST_WITH_MSG( u, ( allocator = AllocatorManager::CreateAllocator( allocatorInfo ) ) != nullptr, "allocator should not be nullptr." );
-
-	UNIT_TEST_WITH_MSG( u, AllocatorManager::DestroyAllocator( allocator, true ), "DestroyAllocator should pass since parameter is valid." );
 	UNIT_TEST_WITH_MSG( u, AllocatorManager::DestroyManager( true ), "Destruction should pass since AllocatorManager exists." );
 }
 
