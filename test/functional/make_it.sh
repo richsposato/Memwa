@@ -45,6 +45,3 @@ g++ -std=c++14 -Wall -o functionality_test.exe \
 	../../src/obj/TinyObjectAllocator.o \
 	../../../Hestia/CppUnitTest/src/obj/UnitTest.o
 echo "Done!"
-
-
-#	TestMultithreadedDuplicates.o \
